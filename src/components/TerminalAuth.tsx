@@ -34,10 +34,10 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
     inputRef.current?.focus();
   }, [step]);
 
-  // Handle Ctrl+T for password toggle
+  // Handle Alt+T for password toggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === 't') {
+      if (e.altKey && e.key === 't') {
         e.preventDefault();
         setShowPassword(prev => !prev);
         toast.info(showPassword ? 'Password hidden' : 'Password visible', { duration: 1000 });
@@ -118,7 +118,7 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
         addOutput('output', '  EXIT     - Cancel and return');
         addOutput('output', '');
         addOutput('output', 'Shortcuts:');
-        addOutput('output', '  Ctrl+T   - Toggle password visibility');
+        addOutput('output', '  Alt+T    - Toggle password visibility');
         addOutput('output', '  Escape   - Cancel operation');
         return;
       }
@@ -157,7 +157,7 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
       setFormData(prev => ({ ...prev, email }));
       addOutput('output', '');
       addOutput('output', 'Enter your PASSWORD:');
-      addOutput('output', '(min 6 characters, Ctrl+T to toggle visibility)');
+      addOutput('output', '(min 6 characters, Alt+T to toggle visibility)');
       setStep('signup_password');
       return;
     }
@@ -232,7 +232,7 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
       setFormData(prev => ({ ...prev, email }));
       addOutput('output', '');
       addOutput('output', 'Enter your PASSWORD:');
-      addOutput('output', '(Ctrl+T to toggle visibility)');
+      addOutput('output', '(Alt+T to toggle visibility)');
       setStep('login_password');
       return;
     }
