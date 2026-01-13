@@ -34,14 +34,16 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
     inputRef.current?.focus();
   }, [step]);
 
-  // Handle Alt+T for password toggle
+  // Handle Shift+T for password toggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key === 't') {
+      const isPasswordStep = step === 'signup_password' || step === 'login_password';
+
+      if (isPasswordStep && e.shiftKey && !e.altKey && !e.ctrlKey && e.key.toLowerCase() === 't') {
         e.preventDefault();
         setShowPassword(prev => !prev);
-        toast.info(showPassword ? 'Password hidden' : 'Password visible', { duration: 1000 });
       }
+
       if (e.key === 'Escape') {
         onCancel();
       }
@@ -49,7 +51,7 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showPassword, onCancel]);
+  }, [step, onCancel]);
 
   // If user is already logged in
   useEffect(() => {
@@ -118,7 +120,7 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
         addOutput('output', '  EXIT     - Cancel and return');
         addOutput('output', '');
         addOutput('output', 'Shortcuts:');
-        addOutput('output', '  Alt+T    - Toggle password visibility');
+        addOutput('output', '  Shift+T  - Toggle password visibility');
         addOutput('output', '  Escape   - Cancel operation');
         return;
       }
@@ -157,7 +159,7 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
       setFormData(prev => ({ ...prev, email }));
       addOutput('output', '');
       addOutput('output', 'Enter your PASSWORD:');
-      addOutput('output', '(min 6 characters, Alt+T to toggle visibility)');
+      addOutput('output', '(min 6 characters, Shift+T to toggle visibility)');
       setStep('signup_password');
       return;
     }
@@ -188,11 +190,21 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
         setIsProcessing(true);
         addOutput('output', 'Creating account...');
         
-        const { error } = await signUp(formData.email, formData.password, formData.nickname);
+        const { error, needsEmailConfirmation } = await signUp(formData.email, formData.password, formData.nickname);
         
         if (error) {
           addOutput('error', `Error: ${error}`);
           addOutput('output', 'Type SIGNUP to try again or EXIT to cancel');
+          setStep('idle');
+        } else if (needsEmailConfirmation) {
+          addOutput('success', '');
+          addOutput('success', '✓ Account created!');
+          addOutput('output', '');
+          addOutput('output', 'Email confirmation is required.');
+          addOutput('output', 'Please check your inbox and open the confirmation link.');
+          addOutput('output', 'Then come back here and type LOGIN.');
+          addOutput('output', '');
+          setFormData({ nickname: '', email: '', password: '' });
           setStep('idle');
         } else {
           addOutput('success', '');
@@ -232,7 +244,7 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
       setFormData(prev => ({ ...prev, email }));
       addOutput('output', '');
       addOutput('output', 'Enter your PASSWORD:');
-      addOutput('output', '(Alt+T to toggle visibility)');
+      addOutput('output', '(Shift+T to toggle visibility)');
       setStep('login_password');
       return;
     }

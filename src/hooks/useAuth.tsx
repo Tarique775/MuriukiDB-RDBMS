@@ -6,7 +6,11 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, nickname: string) => Promise<{ error: string | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    nickname: string
+  ) => Promise<{ error: string | null; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null; code?: string }>;
@@ -40,7 +44,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, nickname: string): Promise<{ error: string | null }> => {
+  const signUp = useCallback(async (
+    email: string,
+    password: string,
+    nickname: string
+  ): Promise<{ error: string | null; needsEmailConfirmation?: boolean }> => {
     try {
       const trimmedEmail = email.trim();
       const trimmedPassword = password.trim();
@@ -71,16 +79,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const redirectUrl = `${window.location.origin}/`;
-      
+
       const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password: trimmedPassword,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            nickname: trimmedNickname
-          }
-        }
+            nickname: trimmedNickname,
+          },
+        },
       });
 
       if (error) {
@@ -90,29 +98,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: error.message };
       }
 
-      // Create leaderboard entry for the new user
-      if (data.user) {
-        const { error: leaderboardError } = await supabase
-          .from('leaderboard')
-          .insert({
-            nickname: trimmedNickname,
-            user_id: data.user.id,
-            xp: 0,
-            level: 1,
-            queries_executed: 0,
-            tables_created: 0,
-            rows_inserted: 0,
-            badges: [],
-            current_streak: 0,
-            highest_streak: 0,
-          });
+      // If confirmation is required, there will be no session yet.
+      // We'll create the leaderboard entry on first successful login instead.
+      const needsEmailConfirmation = !data.session;
 
-        if (leaderboardError) {
-          console.error('Leaderboard creation error:', leaderboardError);
-        }
-      }
-
-      return { error: null };
+      return { error: null, needsEmailConfirmation };
     } catch (err: any) {
       return { error: err.message || 'Signup failed' };
     }
@@ -127,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: 'Email and password are required' };
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password: trimmedPassword,
       });
@@ -137,6 +127,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return { error: 'Invalid email or password' };
         }
         return { error: error.message };
+      }
+
+      // Ensure a leaderboard entry exists for this user (especially after email-confirmation signups)
+      if (data.user) {
+        const nicknameFromMeta = (data.user.user_metadata as any)?.nickname as string | undefined;
+        const fallbackNickname = trimmedEmail.split('@')[0]?.slice(0, 20) || 'Player';
+        const nickname = (nicknameFromMeta || fallbackNickname).trim();
+
+        const { data: existing } = await supabase
+          .from('leaderboard')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase.from('leaderboard').insert({
+            nickname,
+            user_id: data.user.id,
+            xp: 0,
+            level: 1,
+            queries_executed: 0,
+            tables_created: 0,
+            rows_inserted: 0,
+            badges: [],
+            current_streak: 0,
+            highest_streak: 0,
+          });
+        }
       }
 
       return { error: null };
