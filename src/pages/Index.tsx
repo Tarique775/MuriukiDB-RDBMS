@@ -42,9 +42,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground matrix-bg">
+    <div className="h-screen flex flex-col bg-background text-foreground matrix-bg overflow-hidden">
       {/* Header */}
-      <header className="border-b border-border/50 glass-card sticky top-0 z-50">
+      <header className="border-b border-border/50 glass-card flex-shrink-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <FadeContent duration={500}>
@@ -102,7 +102,7 @@ const Index = () => {
       </header>
 
       {/* Mobile Tab Nav */}
-      <div className="sm:hidden border-b border-border/50 glass-card">
+      <div className="sm:hidden border-b border-border/50 glass-card flex-shrink-0">
         <div className="flex">
           <TabButton 
             active={activeTab === 'repl'} 
@@ -122,7 +122,7 @@ const Index = () => {
       </div>
 
       {/* Mobile Side Panel Buttons */}
-      <div className="lg:hidden flex justify-center gap-2 p-3 border-b border-border/30">
+      <div className="lg:hidden flex justify-center gap-2 p-3 border-b border-border/30 flex-shrink-0">
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
@@ -199,66 +199,68 @@ const Index = () => {
       </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 flex-1">
-        <div className="flex gap-6">
-          {/* Main Panel */}
-          <div className="flex-1 min-w-0">
-            <FadeContent blur duration={500}>
-              {activeTab === 'repl' ? (
-                <REPL initialQuery={selectedQuery} onQueryChange={setSelectedQuery} />
-              ) : (
-                <ContactManager />
-              )}
-            </FadeContent>
-          </div>
-
-          {/* Side Panel - Desktop */}
-          <div className="hidden lg:flex lg:flex-col w-80 flex-shrink-0 gap-4">
-            <div className="flex gap-2">
-              <TabButton 
-                active={sidePanel === 'samples'} 
-                onClick={() => setSidePanel('samples')}
-                icon={<Code className="w-3 h-3" />}
-              >
-                Samples
-              </TabButton>
-              <TabButton 
-                active={sidePanel === 'history'} 
-                onClick={() => setSidePanel('history')}
-                icon={<History className="w-3 h-3" />}
-              >
-                History
-              </TabButton>
-              <TabButton 
-                active={sidePanel === 'leaderboard'} 
-                onClick={() => setSidePanel('leaderboard')}
-                icon={<Trophy className="w-3 h-3" />}
-              >
-                Rank
-              </TabButton>
-              {user && (
-                <TabButton 
-                  active={sidePanel === 'profile'} 
-                  onClick={() => setSidePanel('profile')}
-                  icon={<User className="w-3 h-3" />}
-                >
-                  Profile
-                </TabButton>
-              )}
+      <main className="flex-1 min-h-0 overflow-hidden">
+        <div className="container mx-auto px-4 py-4 h-full">
+          <div className="flex gap-6 h-full">
+            {/* Main Panel */}
+            <div className="flex-1 min-w-0 h-full overflow-auto">
+              <FadeContent blur duration={500}>
+                {activeTab === 'repl' ? (
+                  <REPL initialQuery={selectedQuery} onQueryChange={setSelectedQuery} />
+                ) : (
+                  <ContactManager />
+                )}
+              </FadeContent>
             </div>
-            
-            <div className="h-[calc(100vh-220px)] min-h-[400px] overflow-auto">
-              {sidePanel === 'samples' && <SampleQueries onSelectQuery={handleSelectQuery} />}
-              {sidePanel === 'history' && <QueryHistory onSelectQuery={handleSelectQuery} />}
-              {sidePanel === 'leaderboard' && <Leaderboard />}
-              {sidePanel === 'profile' && user && <ProfilePanel />}
+
+            {/* Side Panel - Desktop */}
+            <div className="hidden lg:flex lg:flex-col w-80 flex-shrink-0 gap-4 h-full">
+              <div className="flex gap-2 flex-shrink-0">
+                <TabButton 
+                  active={sidePanel === 'samples'} 
+                  onClick={() => setSidePanel('samples')}
+                  icon={<Code className="w-3 h-3" />}
+                >
+                  Samples
+                </TabButton>
+                <TabButton 
+                  active={sidePanel === 'history'} 
+                  onClick={() => setSidePanel('history')}
+                  icon={<History className="w-3 h-3" />}
+                >
+                  History
+                </TabButton>
+                <TabButton 
+                  active={sidePanel === 'leaderboard'} 
+                  onClick={() => setSidePanel('leaderboard')}
+                  icon={<Trophy className="w-3 h-3" />}
+                >
+                  Rank
+                </TabButton>
+                {user && (
+                  <TabButton 
+                    active={sidePanel === 'profile'} 
+                    onClick={() => setSidePanel('profile')}
+                    icon={<User className="w-3 h-3" />}
+                  >
+                    Profile
+                  </TabButton>
+                )}
+              </div>
+              
+              <div className="flex-1 min-h-0 overflow-auto">
+                {sidePanel === 'samples' && <SampleQueries onSelectQuery={handleSelectQuery} />}
+                {sidePanel === 'history' && <QueryHistory onSelectQuery={handleSelectQuery} />}
+                {sidePanel === 'leaderboard' && <Leaderboard />}
+                {sidePanel === 'profile' && user && <ProfilePanel />}
+              </div>
             </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 py-4 glass-card mt-auto">
+      <footer className="border-t border-border/30 py-3 glass-card flex-shrink-0">
         <div className="container mx-auto px-4">
           <p className="text-center text-xs font-mono text-muted-foreground flex items-center justify-center gap-1 flex-wrap">
             <span className="text-primary font-bold">Pesapal Junior Dev Challenge '26</span> 
