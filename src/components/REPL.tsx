@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { QueryExecutor, highlightSQL, QueryResult } from '@/lib/rdbms';
+import { useGameStats } from '@/hooks/useGameStats';
+import { toast } from 'sonner';
 
 interface HistoryEntry {
   query: string;
@@ -7,7 +9,12 @@ interface HistoryEntry {
   timestamp: Date;
 }
 
-export function REPL() {
+interface REPLProps {
+  initialQuery?: string;
+  onQueryChange?: (query: string) => void;
+}
+
+export function REPL({ initialQuery, onQueryChange }: REPLProps) {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -16,6 +23,7 @@ export function REPL() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const executor = useRef(new QueryExecutor());
+  const { addXP, incrementQueries, incrementTablesCreated, incrementRowsInserted } = useGameStats();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -26,6 +34,13 @@ export function REPL() {
       outputRef.current.scrollTop = outputRef.current.scrollHeight;
     }
   }, [history]);
+
+  useEffect(() => {
+    if (initialQuery && initialQuery !== input) {
+      setInput(initialQuery);
+      inputRef.current?.focus();
+    }
+  }, [initialQuery]);
 
   const executeQuery = useCallback(async () => {
     const query = input.trim();
@@ -38,17 +53,43 @@ export function REPL() {
     try {
       const result = await executor.current.execute(query);
       setHistory(prev => [...prev, { query, result, timestamp: new Date() }]);
+      
+      // Gamification
+      incrementQueries(result.success);
+      
+      if (result.success) {
+        const upperQuery = query.toUpperCase();
+        
+        if (upperQuery.startsWith('CREATE TABLE')) {
+          incrementTablesCreated();
+          addXP(50, 'create_table');
+          toast.success('+50 XP - Table created!', { duration: 2000 });
+        } else if (upperQuery.startsWith('INSERT')) {
+          const rowCount = result.rowCount || 1;
+          incrementRowsInserted(rowCount);
+          addXP(10 * rowCount, 'insert');
+          toast.success(`+${10 * rowCount} XP - Data inserted!`, { duration: 2000 });
+        } else if (upperQuery.startsWith('SELECT')) {
+          addXP(5, 'select');
+        } else if (upperQuery.startsWith('UPDATE') || upperQuery.startsWith('DELETE')) {
+          addXP(15, 'modify');
+        } else {
+          addXP(5, 'query');
+        }
+      }
     } catch (error) {
       setHistory(prev => [...prev, {
         query,
         result: { success: false, message: error instanceof Error ? error.message : 'Unknown error' },
         timestamp: new Date(),
       }]);
+      incrementQueries(false);
     }
 
     setInput('');
+    onQueryChange?.('');
     setIsExecuting(false);
-  }, [input, isExecuting]);
+  }, [input, isExecuting, addXP, incrementQueries, incrementTablesCreated, incrementRowsInserted, onQueryChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -76,7 +117,7 @@ export function REPL() {
 
   const renderResult = (result: QueryResult) => {
     if (!result.success) {
-      return <span className="text-destructive">Error: {result.message}</span>;
+      return <span className="text-destructive">Error: {result.message || result.error}</span>;
     }
 
     if (result.rows && result.rows.length > 0 && result.columns) {
@@ -142,12 +183,12 @@ export function REPL() {
 ╚═══════════════════════════════════════════════════════════╝`}</pre>
           <p className="mt-2">Welcome to the Relational Database Management System</p>
           <p className="text-xs">Type SQL commands and press Enter to execute. Use ↑/↓ to navigate history.</p>
-          <p className="text-xs mt-1">Try: <span className="sql-keyword">SHOW TABLES</span> or <span className="sql-keyword">CREATE TABLE</span> users (id <span className="sql-keyword">INTEGER PRIMARY KEY</span>, name <span className="sql-keyword">TEXT</span>)</p>
+          <p className="text-xs mt-1 text-[hsl(var(--terminal-yellow))]">💡 Earn XP and unlock badges by executing queries!</p>
         </div>
 
         {/* Query history */}
         {history.map((entry, i) => (
-          <div key={i} className="mb-4">
+          <div key={i} className="mb-4 animate-fade-in">
             <div className="flex items-start gap-2">
               <span className="text-[hsl(var(--terminal-cyan))]">❯</span>
               <pre className="flex-1 whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: highlightSQL(entry.query) }} />
@@ -163,7 +204,10 @@ export function REPL() {
             <textarea
               ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                onQueryChange?.(e.target.value);
+              }}
               onKeyDown={handleKeyDown}
               className="w-full bg-transparent border-none outline-none resize-none text-foreground font-mono"
               rows={Math.max(1, input.split('\n').length)}
