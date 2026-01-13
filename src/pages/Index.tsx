@@ -10,8 +10,17 @@ import { TabButton } from '@/components/TabButton';
 import { Leaderboard } from '@/components/Leaderboard';
 import { FadeContent } from '@/components/animations/FadeContent';
 import { DecryptedText } from '@/components/animations/DecryptedText';
-import { Terminal, Users, Github, History, Code, Heart, Trophy, Award } from 'lucide-react';
+import { Terminal, Users, Github, History, Code, Heart, Trophy, Award, ChevronDown, ChevronUp } from 'lucide-react';
 import { useUserFingerprint } from '@/hooks/useUserFingerprint';
+import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 type Tab = 'repl' | 'contacts';
 type SidePanel = 'history' | 'samples' | 'leaderboard';
@@ -20,15 +29,17 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>('repl');
   const [sidePanel, setSidePanel] = useState<SidePanel>('samples');
   const [selectedQuery, setSelectedQuery] = useState('');
+  const [mobilePanel, setMobilePanel] = useState<SidePanel | null>(null);
   const { userInfo } = useUserFingerprint();
 
   const handleSelectQuery = (query: string) => {
     setSelectedQuery(query);
     setActiveTab('repl');
+    setMobilePanel(null);
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground matrix-bg">
+    <div className="min-h-screen flex flex-col bg-background text-foreground matrix-bg">
       {/* Header */}
       <header className="border-b border-border/50 glass-card sticky top-0 z-50">
         <div className="container mx-auto px-4">
@@ -107,8 +118,65 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Mobile Side Panel Buttons */}
+      <div className="lg:hidden flex justify-center gap-2 p-3 border-b border-border/30">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
+              <Code className="w-3.5 h-3.5" />
+              Samples
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[70vh] glass-card">
+            <SheetHeader>
+              <SheetTitle className="font-mono text-primary">Sample Queries</SheetTitle>
+              <SheetDescription>Select a query to run in the REPL</SheetDescription>
+            </SheetHeader>
+            <div className="mt-4 h-[calc(100%-4rem)]">
+              <SampleQueries onSelectQuery={handleSelectQuery} />
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
+              <History className="w-3.5 h-3.5" />
+              History
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[70vh] glass-card">
+            <SheetHeader>
+              <SheetTitle className="font-mono text-primary">Query History</SheetTitle>
+              <SheetDescription>Your recent SQL queries</SheetDescription>
+            </SheetHeader>
+            <div className="mt-4 h-[calc(100%-4rem)]">
+              <QueryHistory onSelectQuery={handleSelectQuery} />
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
+              <Trophy className="w-3.5 h-3.5" />
+              Rank
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[70vh] glass-card">
+            <SheetHeader>
+              <SheetTitle className="font-mono text-primary">Global Leaderboard</SheetTitle>
+              <SheetDescription>Compete with other developers</SheetDescription>
+            </SheetHeader>
+            <div className="mt-4 h-[calc(100%-4rem)]">
+              <Leaderboard />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 flex-1">
         <div className="flex gap-6">
           {/* Main Panel */}
           <div className="flex-1 min-w-0">
@@ -121,7 +189,7 @@ const Index = () => {
             </FadeContent>
           </div>
 
-          {/* Side Panel */}
+          {/* Side Panel - Desktop */}
           <div className="hidden lg:flex lg:flex-col w-80 flex-shrink-0 gap-4">
             <div className="flex gap-2">
               <TabButton 
@@ -147,7 +215,7 @@ const Index = () => {
               </TabButton>
             </div>
             
-            <div className="flex-1 min-h-[500px]">
+            <div className="flex-1 h-[calc(100vh-200px)]">
               {sidePanel === 'samples' && <SampleQueries onSelectQuery={handleSelectQuery} />}
               {sidePanel === 'history' && <QueryHistory onSelectQuery={handleSelectQuery} />}
               {sidePanel === 'leaderboard' && <Leaderboard />}
@@ -157,7 +225,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 py-4 mt-auto glass-card">
+      <footer className="border-t border-border/30 py-4 glass-card mt-auto">
         <div className="container mx-auto px-4">
           <p className="text-center text-xs font-mono text-muted-foreground flex items-center justify-center gap-1 flex-wrap">
             <span className="text-primary font-bold">Pesapal Junior Dev Challenge '26</span> 

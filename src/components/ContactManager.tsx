@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { QueryExecutor } from '@/lib/rdbms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { UserPlus, Trash2, Edit2, Search, Database, RefreshCw, Sparkles, X, CheckSquare } from 'lucide-react';
+import { UserPlus, Trash2, Edit2, Search, Database, RefreshCw, Sparkles, X, CheckSquare, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useGameStats } from '@/hooks/useGameStats';
 import { FadeContent } from '@/components/animations/FadeContent';
 
@@ -18,18 +18,33 @@ interface Contact {
   phone: string;
 }
 
-const SAMPLE_CONTACTS = [
-  { name: 'Alice Johnson', email: 'alice@example.com', phone: '+254 712 345678' },
-  { name: 'Bob Smith', email: 'bob@example.com', phone: '+254 723 456789' },
-  { name: 'Carol Williams', email: 'carol@example.com', phone: '+254 734 567890' },
-  { name: 'David Brown', email: 'david@example.com', phone: '+254 745 678901' },
-  { name: 'Eve Davis', email: 'eve@example.com', phone: '+254 756 789012' },
-];
+// Random name generator for fresh sample data
+const FIRST_NAMES = ['James', 'Mary', 'John', 'Patricia', 'Robert', 'Jennifer', 'Michael', 'Linda', 'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica', 'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Daniel', 'Lisa', 'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra', 'Donald', 'Ashley', 'Steven', 'Kimberly', 'Paul', 'Emily', 'Andrew', 'Donna', 'Joshua', 'Michelle'];
+const LAST_NAMES = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson', 'White', 'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson'];
+const DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com', 'proton.me', 'mail.com', 'icloud.com'];
+
+const generateRandomContact = () => {
+  const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+  const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+  const domain = DOMAINS[Math.floor(Math.random() * DOMAINS.length)];
+  const phonePrefix = ['+254', '+1', '+44', '+91'][Math.floor(Math.random() * 4)];
+  const phoneNum = Math.floor(100000000 + Math.random() * 900000000);
+  
+  return {
+    name: `${firstName} ${lastName}`,
+    email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${Math.floor(Math.random() * 100)}@${domain}`,
+    phone: `${phonePrefix} ${phoneNum.toString().slice(0, 3)} ${phoneNum.toString().slice(3, 6)}${phoneNum.toString().slice(6)}`,
+  };
+};
+
+const ITEMS_PER_PAGE = 10;
 
 export const ContactManager = () => {
   const [executor] = useState(() => new QueryExecutor());
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [allContacts, setAllContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +52,8 @@ export const ContactManager = () => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [batchEditMode, setBatchEditMode] = useState(false);
   const [batchFormData, setBatchFormData] = useState({ phone: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sampleEmails, setSampleEmails] = useState<string[]>([]);
   const { addXP, incrementRowsInserted } = useGameStats();
 
   const initializeTable = async () => {
@@ -65,7 +82,7 @@ export const ContactManager = () => {
     try {
       const result = await executor.execute('SELECT * FROM contacts ORDER BY id');
       if (result.success && result.rows) {
-        setContacts(result.rows as unknown as Contact[]);
+        setAllContacts(result.rows as unknown as Contact[]);
       }
     } catch (error) {
       console.error('Fetch error:', error);
@@ -82,66 +99,88 @@ export const ContactManager = () => {
     init();
   }, []);
 
-  // Search on type
-  useEffect(() => {
-    if (!initialized) return;
-    
-    const searchContacts = async () => {
-      if (!searchTerm.trim()) {
-        await fetchContacts();
-        return;
-      }
-      
-      try {
-        const result = await executor.execute(`
-          SELECT * FROM contacts 
-          WHERE name LIKE '%${searchTerm}%' OR email LIKE '%${searchTerm}%' OR phone LIKE '%${searchTerm}%'
-          ORDER BY id
-        `);
-        if (result.success && result.rows) {
-          setContacts(result.rows as unknown as Contact[]);
-        }
-      } catch (error) {
-        console.error('Search error:', error);
-      }
-    };
+  // Filter contacts based on search term (client-side for instant search)
+  const filteredContacts = useMemo(() => {
+    if (!searchTerm.trim()) return allContacts;
+    const term = searchTerm.toLowerCase();
+    return allContacts.filter(c => 
+      c.name?.toLowerCase().includes(term) || 
+      c.email?.toLowerCase().includes(term) || 
+      c.phone?.toLowerCase().includes(term)
+    );
+  }, [allContacts, searchTerm]);
 
-    const debounce = setTimeout(searchContacts, 300);
-    return () => clearTimeout(debounce);
-  }, [searchTerm, initialized]);
+  // Paginated contacts
+  const totalPages = Math.ceil(filteredContacts.length / ITEMS_PER_PAGE);
+  const paginatedContacts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredContacts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredContacts, currentPage]);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const loadSampleData = async () => {
     let successCount = 0;
-    for (const contact of SAMPLE_CONTACTS) {
+    const newSampleEmails: string[] = [];
+    
+    for (let i = 0; i < 5; i++) {
+      const contact = generateRandomContact();
       try {
         const result = await executor.execute(`
           INSERT INTO contacts (name, email, phone) 
           VALUES ('${contact.name}', '${contact.email}', '${contact.phone}')
         `);
-        if (result.success) successCount++;
+        if (result.success) {
+          successCount++;
+          newSampleEmails.push(contact.email);
+        }
       } catch (error) {
         // Skip duplicates
       }
     }
+    
     if (successCount > 0) {
+      setSampleEmails(prev => [...prev, ...newSampleEmails]);
       toast.success(`Added ${successCount} sample contacts! +${successCount * 10} XP`);
       addXP(successCount * 10, 'sample_data');
       incrementRowsInserted(successCount);
     } else {
-      toast.info('Sample data already loaded');
+      toast.info('Could not add sample data (possible duplicates)');
     }
     await fetchContacts();
   };
 
   const removeSampleData = async () => {
+    if (sampleEmails.length === 0) {
+      toast.info('No sample data to remove');
+      return;
+    }
+    
+    setRemoving(true);
     try {
-      for (const contact of SAMPLE_CONTACTS) {
-        await executor.execute(`DELETE FROM contacts WHERE email = '${contact.email}'`);
+      let removedCount = 0;
+      for (const email of sampleEmails) {
+        const result = await executor.execute(`DELETE FROM contacts WHERE email = '${email}'`);
+        if (result.success) {
+          removedCount++;
+        }
       }
-      toast.success('Sample data removed');
-      await fetchContacts();
+      
+      if (removedCount > 0) {
+        toast.success(`Removed ${removedCount} sample contacts`);
+        setSampleEmails([]);
+        await fetchContacts();
+      } else {
+        toast.info('Sample data already removed');
+        setSampleEmails([]);
+      }
     } catch (error) {
       toast.error('Failed to remove sample data');
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -163,7 +202,7 @@ export const ContactManager = () => {
         
         if (result.success) {
           // Optimistic update - update local state immediately
-          setContacts(prev => prev.map(c => 
+          setAllContacts(prev => prev.map(c => 
             c.id === editingId 
               ? { ...c, name: formData.name, email: formData.email, phone: formData.phone }
               : c
@@ -205,7 +244,7 @@ export const ContactManager = () => {
       const result = await executor.execute(`DELETE FROM contacts WHERE id = ${id}`);
       if (result.success) {
         // Optimistic update
-        setContacts(prev => prev.filter(c => c.id !== id));
+        setAllContacts(prev => prev.filter(c => c.id !== id));
         setSelectedIds(prev => {
           const newSet = new Set(prev);
           newSet.delete(id);
@@ -233,10 +272,10 @@ export const ContactManager = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === contacts.length) {
+    if (selectedIds.size === paginatedContacts.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(contacts.map(c => c.id)));
+      setSelectedIds(new Set(paginatedContacts.map(c => c.id)));
     }
   };
 
@@ -255,7 +294,7 @@ export const ContactManager = () => {
       
       // Optimistic update
       if (batchFormData.phone) {
-        setContacts(prev => prev.map(c => 
+        setAllContacts(prev => prev.map(c => 
           selectedIds.has(c.id) ? { ...c, phone: batchFormData.phone } : c
         ));
       }
@@ -281,7 +320,7 @@ export const ContactManager = () => {
       }
       
       // Optimistic update
-      setContacts(prev => prev.filter(c => !selectedIds.has(c.id)));
+      setAllContacts(prev => prev.filter(c => !selectedIds.has(c.id)));
       toast.success(`Deleted ${selectedIds.size} contacts`);
       setSelectedIds(new Set());
     } catch (error: any) {
@@ -307,9 +346,14 @@ export const ContactManager = () => {
               <Sparkles className="w-4 h-4" />
               Load Sample
             </Button>
-            <Button onClick={removeSampleData} variant="outline" className="font-mono text-sm gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
-              <Trash2 className="w-4 h-4" />
-              Remove Sample
+            <Button 
+              onClick={removeSampleData} 
+              variant="outline" 
+              className="font-mono text-sm gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+              disabled={removing || sampleEmails.length === 0}
+            >
+              {removing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Remove Sample {sampleEmails.length > 0 && `(${sampleEmails.length})`}
             </Button>
           </div>
         </div>
@@ -388,7 +432,7 @@ export const ContactManager = () => {
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search contacts... (searches on type)"
+              placeholder="Search contacts... (instant search)"
               className="pl-10 pr-10 font-mono text-sm glass-input"
             />
             {searchTerm && (
@@ -425,7 +469,7 @@ export const ContactManager = () => {
           )}
           
           <Button onClick={fetchContacts} variant="ghost" size="icon" title="Refresh">
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </FadeContent>
@@ -466,7 +510,7 @@ export const ContactManager = () => {
                 <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead className="w-10">
                     <Checkbox
-                      checked={selectedIds.size === contacts.length && contacts.length > 0}
+                      checked={selectedIds.size === paginatedContacts.length && paginatedContacts.length > 0}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
@@ -480,18 +524,21 @@ export const ContactManager = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground font-mono">
-                      Loading...
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="flex items-center justify-center gap-2 text-muted-foreground font-mono">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading...
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : contacts.length === 0 ? (
+                ) : paginatedContacts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground font-mono">
-                      No contacts found. Add one above or load sample data!
+                      {searchTerm ? 'No contacts match your search' : 'No contacts found. Add one above or load sample data!'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  contacts.map((contact) => (
+                  paginatedContacts.map((contact) => (
                     <TableRow 
                       key={contact.id} 
                       className={`border-border/30 hover:bg-primary/5 transition-colors ${selectedIds.has(contact.id) ? 'bg-primary/10' : ''}`}
@@ -532,6 +579,38 @@ export const ContactManager = () => {
               </TableBody>
             </Table>
           </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t border-border/30">
+              <p className="text-xs font-mono text-muted-foreground">
+                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredContacts.length)} of {filteredContacts.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="font-mono"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-xs font-mono text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="font-mono"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       </FadeContent>
 
