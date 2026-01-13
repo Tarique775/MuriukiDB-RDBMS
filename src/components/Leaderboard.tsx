@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Award, Crown, RefreshCw, User, Zap } from 'lucide-react';
+import { Trophy, Medal, Award, Crown, RefreshCw, User, Zap, Loader2 } from 'lucide-react';
 import { useGameStats, BADGES } from '@/hooks/useGameStats';
 import { useUserFingerprint } from '@/hooks/useUserFingerprint';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ interface LeaderboardEntry {
 export function Leaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [nickname, setNickname] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
   const [myRank, setMyRank] = useState<number | null>(null);
@@ -79,13 +80,15 @@ export function Leaderboard() {
       return;
     }
 
+    setSyncing(true);
+
     try {
       // Check if already registered with this fingerprint
       const { data: existing } = await supabase
         .from('leaderboard')
         .select('id')
         .eq('browser_fingerprint', userInfo.fingerprint)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Update existing entry
@@ -111,10 +114,11 @@ export function Leaderboard() {
           .from('leaderboard')
           .select('id')
           .eq('nickname', nickname.trim())
-          .single();
+          .maybeSingle();
 
         if (nickCheck) {
           toast.error('Nickname already taken!');
+          setSyncing(false);
           return;
         }
 
@@ -142,6 +146,8 @@ export function Leaderboard() {
     } catch (error: any) {
       console.error('Error syncing stats:', error);
       toast.error(error.message || 'Failed to sync stats');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -153,8 +159,8 @@ export function Leaderboard() {
   };
 
   return (
-    <Card className="glass-card border-primary/30">
-      <CardHeader className="pb-3">
+    <Card className="glass-card border-primary/30 h-full flex flex-col">
+      <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-mono flex items-center gap-2">
             <Trophy className="w-4 h-4 text-yellow-400" />
@@ -165,7 +171,7 @@ export function Leaderboard() {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
         {/* Registration/Sync */}
         <FadeContent blur duration={500}>
           <div className="flex gap-2">
@@ -176,8 +182,8 @@ export function Leaderboard() {
               className="font-mono text-sm glass-input"
               maxLength={20}
             />
-            <Button onClick={syncStats} size="sm" className="font-mono">
-              {isRegistered ? 'Sync' : 'Join'}
+            <Button onClick={syncStats} size="sm" className="font-mono" disabled={syncing}>
+              {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : isRegistered ? 'Sync' : 'Join'}
             </Button>
           </div>
           {myRank && (
@@ -188,17 +194,18 @@ export function Leaderboard() {
         </FadeContent>
 
         {/* Leaderboard List */}
-        <ScrollArea className="h-[300px]">
+        <ScrollArea className="flex-1 min-h-0">
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground font-mono text-sm">
-              Loading rankings...
+            <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="font-mono text-sm">Loading rankings...</span>
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground font-mono text-sm">
               No players yet. Be the first!
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 pr-2">
               {entries.map((entry, index) => (
                 <FadeContent key={entry.id} delay={index * 50} duration={300}>
                   <div
