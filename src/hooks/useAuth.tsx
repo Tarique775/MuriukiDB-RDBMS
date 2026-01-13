@@ -13,8 +13,9 @@ interface AuthContextType {
   ) => Promise<{ error: string | null; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: string | null; code?: string }>;
-  verifyRecoveryCode: (email: string, code: string) => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+  verifyOtp: (email: string, token: string, type: 'signup' | 'recovery') => Promise<{ error: string | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -167,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
   }, []);
 
-  const resetPassword = useCallback(async (email: string): Promise<{ error: string | null; code?: string }> => {
+  const resetPassword = useCallback(async (email: string): Promise<{ error: string | null }> => {
     try {
       const trimmedEmail = email.trim();
 
@@ -175,9 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: 'Email is required' };
       }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-        redirectTo: `${window.location.origin}/`,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail);
 
       if (error) {
         return { error: error.message };
@@ -189,9 +188,68 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const verifyRecoveryCode = useCallback(async (_email: string, _code: string): Promise<{ error: string | null }> => {
-    // This is a placeholder - Supabase handles recovery via email link
-    return { error: 'Recovery code verification is handled via email link' };
+  const verifyOtp = useCallback(async (
+    email: string,
+    token: string,
+    type: 'signup' | 'recovery'
+  ): Promise<{ error: string | null }> => {
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: token.trim(),
+        type,
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      // For signup, create leaderboard entry after verification
+      if (type === 'signup' && data.user) {
+        const nicknameFromMeta = (data.user.user_metadata as any)?.nickname as string | undefined;
+        const fallbackNickname = email.split('@')[0]?.slice(0, 20) || 'Player';
+        const nickname = (nicknameFromMeta || fallbackNickname).trim();
+
+        const { data: existing } = await supabase
+          .from('leaderboard')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+
+        if (!existing) {
+          await supabase.from('leaderboard').insert({
+            nickname,
+            user_id: data.user.id,
+            xp: 0,
+            level: 1,
+            queries_executed: 0,
+            tables_created: 0,
+            rows_inserted: 0,
+            badges: [],
+            current_streak: 0,
+            highest_streak: 0,
+          });
+        }
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: err.message || 'Verification failed' };
+    }
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword: string): Promise<{ error: string | null }> => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: err.message || 'Password update failed' };
+    }
   }, []);
 
   return (
@@ -203,7 +261,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signIn,
       signOut,
       resetPassword,
-      verifyRecoveryCode,
+      verifyOtp,
+      updatePassword,
     }}>
       {children}
     </AuthContext.Provider>
@@ -222,7 +281,8 @@ export const useAuth = () => {
       signIn: async () => ({ error: 'Auth not initialized' }),
       signOut: async () => {},
       resetPassword: async () => ({ error: 'Auth not initialized' }),
-      verifyRecoveryCode: async () => ({ error: 'Auth not initialized' }),
+      verifyOtp: async () => ({ error: 'Auth not initialized' }),
+      updatePassword: async () => ({ error: 'Auth not initialized' }),
     } as AuthContextType;
   }
   return context;
