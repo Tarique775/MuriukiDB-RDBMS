@@ -9,9 +9,10 @@ type AuthStep = 'idle' | 'signup_nickname' | 'signup_email' | 'signup_password' 
 interface TerminalAuthProps {
   onComplete: () => void;
   onCancel: () => void;
+  onEmailSent?: (email: string) => void;
 }
 
-export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
+export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuthProps) {
   const [step, setStep] = useState<AuthStep>('idle');
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<Array<{ type: 'input' | 'output' | 'error' | 'success'; text: string }>>([]);
@@ -204,6 +205,10 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
           addOutput('output', 'Please check your inbox and open the confirmation link.');
           addOutput('output', 'Then come back here and type LOGIN.');
           addOutput('output', '');
+          // Notify parent about email sent
+          if (onEmailSent) {
+            onEmailSent(formData.email);
+          }
           setFormData({ nickname: '', email: '', password: '' });
           setStep('idle');
         } else {
@@ -307,7 +312,7 @@ export function TerminalAuth({ onComplete, onCancel }: TerminalAuthProps) {
       setStep('idle');
       return;
     }
-  }, [step, formData, signUp, signIn, resetPassword, onComplete, onCancel]);
+  }, [step, formData, signUp, signIn, resetPassword, onComplete, onCancel, onEmailSent]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

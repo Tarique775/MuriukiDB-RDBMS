@@ -1,1 +1,4 @@
 project_id = "gaiotjmnzeeohzxgkxuw"
+
+[functions.sql-execute]
+verify_jwt = false

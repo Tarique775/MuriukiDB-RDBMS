@@ -9,6 +9,7 @@ import { GameStatsProvider } from "@/hooks/useGameStats";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Achievements from "./pages/Achievements";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -26,6 +27,7 @@ const App = () => {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/achievements" element={<Achievements />} />
+                  <Route path="/auth" element={<Auth />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
