@@ -94,6 +94,11 @@ export default function Achievements() {
                     <Flame className="w-6 h-6 mx-auto mb-2 text-[hsl(var(--terminal-orange))]" />
                     <p className="text-2xl font-bold font-mono">{stats.streak}</p>
                     <p className="text-xs text-muted-foreground">Day Streak</p>
+                    {stats.highestStreak > 0 && (
+                      <p className="text-[10px] text-[hsl(var(--terminal-yellow))] mt-1">
+                        Best: {stats.highestStreak} 🏆
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -134,10 +139,10 @@ export default function Achievements() {
         <FadeContent blur duration={600} delay={200}>
           <Card className="glass-card border-primary/30">
             <CardHeader>
-              <CardTitle className="text-lg font-mono flex items-center gap-2">
-                <Crown className="w-5 h-5 text-yellow-400" />
-                Military Ranks (0 → 1,000,000 XP)
-              </CardTitle>
+            <CardTitle className="text-lg font-mono flex items-center gap-2">
+              <Crown className="w-5 h-5 text-yellow-400" />
+              SQL Command Ladder (0 → 1,000,000 XP)
+            </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

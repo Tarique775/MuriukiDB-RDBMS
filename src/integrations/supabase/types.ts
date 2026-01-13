@@ -19,6 +19,8 @@ export type Database = {
           badges: string[] | null
           browser_fingerprint: string | null
           created_at: string
+          current_streak: number
+          highest_streak: number
           id: string
           last_seen: string
           level: number
@@ -27,12 +29,15 @@ export type Database = {
           rows_inserted: number
           tables_created: number
           updated_at: string
+          user_id: string | null
           xp: number
         }
         Insert: {
           badges?: string[] | null
           browser_fingerprint?: string | null
           created_at?: string
+          current_streak?: number
+          highest_streak?: number
           id?: string
           last_seen?: string
           level?: number
@@ -41,12 +46,15 @@ export type Database = {
           rows_inserted?: number
           tables_created?: number
           updated_at?: string
+          user_id?: string | null
           xp?: number
         }
         Update: {
           badges?: string[] | null
           browser_fingerprint?: string | null
           created_at?: string
+          current_streak?: number
+          highest_streak?: number
           id?: string
           last_seen?: string
           level?: number
@@ -55,6 +63,7 @@ export type Database = {
           rows_inserted?: number
           tables_created?: number
           updated_at?: string
+          user_id?: string | null
           xp?: number
         }
         Relationships: []

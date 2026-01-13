@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Award, Crown, RefreshCw, User, Zap, Loader2 } from 'lucide-react';
-import { useGameStats, BADGES } from '@/hooks/useGameStats';
+import { Trophy, Medal, Award, Crown, RefreshCw, User, Zap, Loader2, LogIn, LogOut } from 'lucide-react';
+import { useGameStats, BADGES, getRankInfo } from '@/hooks/useGameStats';
 import { useUserFingerprint } from '@/hooks/useUserFingerprint';
+import { useAuth } from '@/hooks/useAuth';
+import { TerminalAuth } from './TerminalAuth';
 import { toast } from 'sonner';
 import { FadeContent } from './animations/FadeContent';
 
@@ -19,6 +21,7 @@ interface LeaderboardEntry {
   queries_executed: number;
   badges: string[];
   browser_fingerprint?: string;
+  user_id?: string;
 }
 
 export function Leaderboard() {
@@ -28,27 +31,31 @@ export function Leaderboard() {
   const [nickname, setNickname] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
   const [myRank, setMyRank] = useState<number | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
   const { stats, currentRank } = useGameStats();
   const { userInfo } = useUserFingerprint();
+  const { user, signOut } = useAuth();
 
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
+      // Exclude browser_fingerprint from select for privacy
       const { data, error } = await supabase
         .from('leaderboard')
-        .select('*')
+        .select('id, nickname, xp, level, queries_executed, badges, user_id')
         .order('xp', { ascending: false })
         .limit(100);
       
       if (!error && data) {
         setEntries(data);
         
-        // Find my rank
-        if (userInfo?.fingerprint) {
-          const myEntry = data.findIndex(e => e.browser_fingerprint === userInfo.fingerprint);
+        // Find my rank by user_id (authenticated) or check local registration
+        if (user) {
+          const myEntry = data.findIndex(e => e.user_id === user.id);
           if (myEntry !== -1) {
             setMyRank(myEntry + 1);
             setIsRegistered(true);
+            setNickname(data[myEntry].nickname);
           }
         }
       }
@@ -61,87 +68,33 @@ export function Leaderboard() {
 
   useEffect(() => {
     fetchLeaderboard();
-    
-    // Check for stored nickname
-    const storedNickname = localStorage.getItem('muriukidb-nickname');
-    if (storedNickname) {
-      setNickname(storedNickname);
-    }
-  }, [userInfo]);
+  }, [user]);
 
   const syncStats = async () => {
-    if (!nickname.trim()) {
-      toast.error('Please enter a nickname');
-      return;
-    }
-
-    if (!userInfo?.fingerprint) {
-      toast.error('Could not identify user');
+    if (!user) {
+      setShowAuth(true);
       return;
     }
 
     setSyncing(true);
-
     try {
-      // Check if already registered with this fingerprint
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('leaderboard')
-        .select('id')
-        .eq('browser_fingerprint', userInfo.fingerprint)
-        .maybeSingle();
+        .update({
+          xp: stats.xp,
+          level: currentRank.level,
+          queries_executed: stats.queriesExecuted,
+          tables_created: stats.tablesCreated,
+          rows_inserted: stats.rowsInserted,
+          badges: stats.badges,
+          current_streak: stats.streak,
+          highest_streak: stats.highestStreak,
+          last_seen: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
 
-      if (existing) {
-        // Update existing entry
-        const { error } = await supabase
-          .from('leaderboard')
-          .update({
-            nickname: nickname.trim(),
-            xp: stats.xp,
-            level: currentRank.level,
-            queries_executed: stats.queriesExecuted,
-            tables_created: stats.tablesCreated,
-            rows_inserted: stats.rowsInserted,
-            badges: stats.badges,
-            last_seen: new Date().toISOString(),
-          })
-          .eq('browser_fingerprint', userInfo.fingerprint);
-
-        if (error) throw error;
-        toast.success('Stats synced to leaderboard!');
-      } else {
-        // Check if nickname is taken
-        const { data: nickCheck } = await supabase
-          .from('leaderboard')
-          .select('id')
-          .eq('nickname', nickname.trim())
-          .maybeSingle();
-
-        if (nickCheck) {
-          toast.error('Nickname already taken!');
-          setSyncing(false);
-          return;
-        }
-
-        // Create new entry
-        const { error } = await supabase
-          .from('leaderboard')
-          .insert({
-            nickname: nickname.trim(),
-            xp: stats.xp,
-            level: currentRank.level,
-            queries_executed: stats.queriesExecuted,
-            tables_created: stats.tablesCreated,
-            rows_inserted: stats.rowsInserted,
-            badges: stats.badges,
-            browser_fingerprint: userInfo.fingerprint,
-          });
-
-        if (error) throw error;
-        toast.success('Registered on leaderboard!');
-      }
-
-      localStorage.setItem('muriukidb-nickname', nickname.trim());
-      setIsRegistered(true);
+      if (error) throw error;
+      toast.success('Stats synced to leaderboard!');
       await fetchLeaderboard();
     } catch (error: any) {
       console.error('Error syncing stats:', error);
@@ -151,12 +104,35 @@ export function Leaderboard() {
     }
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    setIsRegistered(false);
+    setMyRank(null);
+    setNickname('');
+    toast.success('Logged out');
+  };
+
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Crown className="w-5 h-5 text-yellow-400" />;
     if (rank === 2) return <Medal className="w-5 h-5 text-gray-300" />;
     if (rank === 3) return <Award className="w-5 h-5 text-amber-600" />;
     return <span className="w-5 text-center text-sm font-mono text-muted-foreground">{rank}</span>;
   };
+
+  // Show terminal auth if requested
+  if (showAuth) {
+    return (
+      <div className="h-full">
+        <TerminalAuth 
+          onComplete={() => {
+            setShowAuth(false);
+            fetchLeaderboard();
+          }} 
+          onCancel={() => setShowAuth(false)} 
+        />
+      </div>
+    );
+  }
 
   return (
     <Card className="glass-card border-primary/30 h-full flex flex-col">
@@ -172,24 +148,31 @@ export function Leaderboard() {
         </div>
       </CardHeader>
       <CardContent className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden">
-        {/* Registration/Sync */}
+        {/* Auth/Sync Section */}
         <FadeContent blur duration={500}>
-          <div className="flex gap-2">
-            <Input
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="Enter nickname..."
-              className="font-mono text-sm glass-input"
-              maxLength={20}
-            />
-            <Button onClick={syncStats} size="sm" className="font-mono" disabled={syncing}>
-              {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : isRegistered ? 'Sync' : 'Join'}
+          {user ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-primary truncate">✓ {nickname || user.email}</span>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="h-6 text-xs gap-1">
+                  <LogOut className="w-3 h-3" />
+                  Logout
+                </Button>
+              </div>
+              <Button onClick={syncStats} size="sm" className="w-full font-mono" disabled={syncing}>
+                {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sync Stats'}
+              </Button>
+              {myRank && (
+                <p className="text-xs text-primary font-mono text-center animate-pulse">
+                  🏆 Your rank: #{myRank}
+                </p>
+              )}
+            </div>
+          ) : (
+            <Button onClick={() => setShowAuth(true)} size="sm" className="w-full font-mono gap-2">
+              <LogIn className="w-4 h-4" />
+              Join Leaderboard
             </Button>
-          </div>
-          {myRank && (
-            <p className="text-xs text-primary font-mono mt-2 animate-pulse">
-              🏆 Your rank: #{myRank}
-            </p>
           )}
         </FadeContent>
 
@@ -210,7 +193,7 @@ export function Leaderboard() {
                 <FadeContent key={entry.id} delay={index * 50} duration={300}>
                   <div
                     className={`flex items-center gap-3 p-3 rounded-lg transition-all hover:bg-primary/10 ${
-                      userInfo?.fingerprint && entry.browser_fingerprint === userInfo.fingerprint
+                      user && entry.user_id === user.id
                         ? 'bg-primary/20 border border-primary/50'
                         : 'bg-secondary/30'
                     }`}
@@ -225,7 +208,7 @@ export function Leaderboard() {
                           {entry.nickname}
                         </span>
                         <Badge variant="secondary" className="text-[10px] px-1.5">
-                          LVL {entry.level}
+                          LVL {getRankInfo(entry.xp).level}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">

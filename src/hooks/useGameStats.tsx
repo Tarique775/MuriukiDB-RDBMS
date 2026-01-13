@@ -14,6 +14,7 @@ interface GameStats {
   xp: number;
   badges: string[];
   streak: number;
+  highestStreak: number; // Tracks the best streak ever achieved
   lastQueryDate: string | null;
   pointEvents: PointEvent[]; // For cooldown tracking
 }
@@ -80,6 +81,7 @@ const defaultStats: GameStats = {
   xp: 0,
   badges: [],
   streak: 0,
+  highestStreak: 0,
   lastQueryDate: null,
   pointEvents: [],
 };
@@ -137,8 +139,13 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          // Ensure pointEvents exists for migration
-          return { ...defaultStats, ...parsed, pointEvents: parsed.pointEvents || [] };
+          // Ensure pointEvents and highestStreak exist for migration
+          return { 
+            ...defaultStats, 
+            ...parsed, 
+            pointEvents: parsed.pointEvents || [],
+            highestStreak: parsed.highestStreak ?? parsed.streak ?? 0
+          };
         } catch {
           return defaultStats;
         }
@@ -230,9 +237,22 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
       // Check streak
       const today = new Date().toDateString();
       let streak = prev.streak;
+      let highestStreak = prev.highestStreak;
+      
       if (prev.lastQueryDate !== today) {
         const yesterday = new Date(Date.now() - 86400000).toDateString();
-        streak = prev.lastQueryDate === yesterday ? prev.streak + 1 : 1;
+        if (prev.lastQueryDate === yesterday) {
+          // Continued streak
+          streak = prev.streak + 1;
+        } else if (prev.lastQueryDate && prev.lastQueryDate !== yesterday) {
+          // Streak broken - reset to 1
+          streak = 1;
+        } else {
+          // First day ever or no previous date
+          streak = 1;
+        }
+        // Update highest streak if current is higher
+        highestStreak = Math.max(highestStreak, streak);
       }
 
       // Badge checks
@@ -252,6 +272,7 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
         successfulQueries,
         badges: newBadges,
         streak,
+        highestStreak,
         lastQueryDate: today,
       };
     });
