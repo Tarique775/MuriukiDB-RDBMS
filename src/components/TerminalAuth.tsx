@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-react';
 
 type AuthStep = 'idle' | 'signup_nickname' | 'signup_email' | 'signup_password' | 'signup_confirm' |
                 'login_email' | 'login_password' |
@@ -372,11 +373,21 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
               type={isPasswordField && !showPassword ? 'password' : 'text'}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-transparent border-none outline-none text-foreground font-mono"
+              className="flex-1 bg-transparent border-none outline-none text-foreground font-mono min-w-0"
               placeholder={step === 'idle' ? 'Enter command...' : ''}
               autoComplete="off"
               spellCheck={false}
             />
+            {isPasswordField && (
+              <button
+                type="button"
+                onClick={() => setShowPassword(prev => !prev)}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            )}
           </form>
         )}
         
