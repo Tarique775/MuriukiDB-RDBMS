@@ -26,6 +26,18 @@ import { Json } from '@/integrations/supabase/types';
 // In-memory index cache
 const indexCache: Map<string, BTree<unknown>> = new Map();
 
+// Resource limits to prevent abuse
+const RESOURCE_LIMITS = {
+  MAX_TABLES: 50,
+  MAX_ROWS_PER_TABLE: 10000,
+  QUERY_TIMEOUT_MS: 5000,
+  MAX_QUERIES_PER_MINUTE: 30,
+};
+
+// Rate limiting state
+let queryCount = 0;
+let windowStart = Date.now();
+
 export class QueryExecutor {
   private parser: Parser;
 
@@ -33,12 +45,38 @@ export class QueryExecutor {
     this.parser = new Parser();
   }
 
+  private checkRateLimit(): void {
+    const now = Date.now();
+    if (now - windowStart > 60000) {
+      queryCount = 0;
+      windowStart = now;
+    }
+    
+    if (queryCount >= RESOURCE_LIMITS.MAX_QUERIES_PER_MINUTE) {
+      throw new Error(`Rate limit exceeded (${RESOURCE_LIMITS.MAX_QUERIES_PER_MINUTE} queries/minute). Please wait.`);
+    }
+    
+    queryCount++;
+  }
+
   async execute(sql: string): Promise<QueryResult> {
     const startTime = performance.now();
     
     try {
+      // Check rate limit
+      this.checkRateLimit();
+      
       const ast = this.parser.parse(sql);
-      const result = await this.executeNode(ast);
+      
+      // Execute with timeout
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Query timeout (${RESOURCE_LIMITS.QUERY_TIMEOUT_MS / 1000}s limit)`)), RESOURCE_LIMITS.QUERY_TIMEOUT_MS)
+      );
+      
+      const result = await Promise.race([
+        this.executeNode(ast),
+        timeoutPromise
+      ]);
       
       result.executionTime = Math.round(performance.now() - startTime);
       
@@ -85,6 +123,15 @@ export class QueryExecutor {
   }
 
   private async executeCreateTable(node: CreateTableNode): Promise<QueryResult> {
+    // Check table limit to prevent resource exhaustion
+    const { count: tableCount } = await supabase
+      .from('rdbms_tables')
+      .select('*', { count: 'exact', head: true });
+
+    if (tableCount !== null && tableCount >= RESOURCE_LIMITS.MAX_TABLES) {
+      throw new Error(`Maximum table limit reached (${RESOURCE_LIMITS.MAX_TABLES} tables). Drop unused tables first.`);
+    }
+
     // Check if table exists
     const { data: existing } = await supabase
       .from('rdbms_tables')
@@ -165,6 +212,17 @@ export class QueryExecutor {
   private async executeInsert(node: InsertNode): Promise<QueryResult> {
     const table = await this.getTable(node.tableName);
     const columns = table.columns as ColumnDefinition[];
+
+    // Check row limit per table to prevent storage exhaustion
+    const { count: rowCount } = await supabase
+      .from('rdbms_rows')
+      .select('*', { count: 'exact', head: true })
+      .eq('table_id', table.id);
+
+    const rowsToInsert = node.values.length;
+    if (rowCount !== null && rowCount + rowsToInsert > RESOURCE_LIMITS.MAX_ROWS_PER_TABLE) {
+      throw new Error(`Maximum row limit reached for this table (${RESOURCE_LIMITS.MAX_ROWS_PER_TABLE} rows). Delete some rows first.`);
+    }
     
     // Get next auto-increment value
     let autoIncrementValue = 1;

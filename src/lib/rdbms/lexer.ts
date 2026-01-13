@@ -178,6 +178,14 @@ export class Lexer {
   }
 }
 
+// HTML escape function to prevent XSS attacks
+const escapeHtml = (str: string): string =>
+  str.replace(/&/g, '&amp;')
+     .replace(/</g, '&lt;')
+     .replace(/>/g, '&gt;')
+     .replace(/"/g, '&quot;')
+     .replace(/'/g, '&#039;');
+
 // Syntax highlighter for SQL
 export function highlightSQL(sql: string): string {
   const lexer = new Lexer(sql);
@@ -190,9 +198,9 @@ export function highlightSQL(sql: string): string {
     for (const token of tokens) {
       if (token.type === 'EOF') break;
 
-      // Add any whitespace before this token
+      // Add any whitespace before this token (escaped)
       while (lastPosition < token.position) {
-        highlighted += sql[lastPosition];
+        highlighted += escapeHtml(sql[lastPosition]);
         lastPosition++;
       }
 
@@ -202,35 +210,35 @@ export function highlightSQL(sql: string): string {
         originalText = `'${token.value}'`;
       }
 
-      // Apply syntax highlighting
+      // Apply syntax highlighting with HTML escaping
       switch (token.type) {
         case 'KEYWORD':
-          highlighted += `<span class="sql-keyword">${originalText}</span>`;
+          highlighted += `<span class="sql-keyword">${escapeHtml(originalText)}</span>`;
           break;
         case 'STRING':
-          highlighted += `<span class="sql-string">'${token.value}'</span>`;
+          highlighted += `<span class="sql-string">'${escapeHtml(token.value)}'</span>`;
           break;
         case 'NUMBER':
-          highlighted += `<span class="sql-number">${originalText}</span>`;
+          highlighted += `<span class="sql-number">${escapeHtml(originalText)}</span>`;
           break;
         case 'IDENTIFIER':
-          highlighted += `<span class="sql-table">${originalText}</span>`;
+          highlighted += `<span class="sql-table">${escapeHtml(originalText)}</span>`;
           break;
         default:
-          highlighted += originalText;
+          highlighted += escapeHtml(originalText);
       }
 
       lastPosition = token.position + originalText.length;
     }
 
-    // Add any remaining text
+    // Add any remaining text (escaped)
     while (lastPosition < sql.length) {
-      highlighted += sql[lastPosition];
+      highlighted += escapeHtml(sql[lastPosition]);
       lastPosition++;
     }
   } catch {
-    // If tokenization fails, return plain text
-    return sql;
+    // If tokenization fails, return escaped plain text
+    return escapeHtml(sql);
   }
 
   return highlighted;
