@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { UserPlus, Trash2, Edit2, Search, Database, RefreshCw } from 'lucide-react';
+import { UserPlus, Trash2, Edit2, Search, Database, RefreshCw, Sparkles } from 'lucide-react';
+import { useGameStats } from '@/hooks/useGameStats';
 
 interface Contact {
   id: number;
@@ -14,6 +15,14 @@ interface Contact {
   email: string;
   phone: string;
 }
+
+const SAMPLE_CONTACTS = [
+  { name: 'Alice Johnson', email: 'alice@example.com', phone: '+254 712 345678' },
+  { name: 'Bob Smith', email: 'bob@example.com', phone: '+254 723 456789' },
+  { name: 'Carol Williams', email: 'carol@example.com', phone: '+254 734 567890' },
+  { name: 'David Brown', email: 'david@example.com', phone: '+254 745 678901' },
+  { name: 'Eve Davis', email: 'eve@example.com', phone: '+254 756 789012' },
+];
 
 export const ContactManager = () => {
   const [executor] = useState(() => new QueryExecutor());
@@ -23,6 +32,7 @@ export const ContactManager = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [initialized, setInitialized] = useState(false);
+  const { addXP, incrementRowsInserted } = useGameStats();
 
   const initializeTable = async () => {
     try {
@@ -72,6 +82,29 @@ export const ContactManager = () => {
     init();
   }, []);
 
+  const loadSampleData = async () => {
+    let successCount = 0;
+    for (const contact of SAMPLE_CONTACTS) {
+      try {
+        const result = await executor.execute(`
+          INSERT INTO contacts (name, email, phone) 
+          VALUES ('${contact.name}', '${contact.email}', '${contact.phone}')
+        `);
+        if (result.success) successCount++;
+      } catch (error) {
+        // Skip duplicates
+      }
+    }
+    if (successCount > 0) {
+      toast.success(`Added ${successCount} sample contacts! +${successCount * 10} XP`);
+      addXP(successCount * 10, 'sample_data');
+      incrementRowsInserted(successCount);
+    } else {
+      toast.info('Sample data already loaded');
+    }
+    await fetchContacts();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -93,7 +126,7 @@ export const ContactManager = () => {
           toast.success('Contact updated');
           setEditingId(null);
         } else {
-          toast.error(result.error || 'Update failed');
+          toast.error(result.error || result.message || 'Update failed');
         }
       } else {
         // Insert new contact
@@ -103,9 +136,11 @@ export const ContactManager = () => {
         `);
         
         if (result.success) {
-          toast.success('Contact added');
+          toast.success('Contact added! +10 XP');
+          addXP(10, 'add_contact');
+          incrementRowsInserted(1);
         } else {
-          toast.error(result.error || 'Insert failed');
+          toast.error(result.error || result.message || 'Insert failed');
         }
       }
       
@@ -128,7 +163,7 @@ export const ContactManager = () => {
         toast.success('Contact deleted');
         await fetchContacts();
       } else {
-        toast.error(result.error || 'Delete failed');
+        toast.error(result.error || result.message || 'Delete failed');
       }
     } catch (error: any) {
       toast.error(error.message || 'Delete failed');
@@ -159,12 +194,18 @@ export const ContactManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Database className="w-6 h-6 text-primary" />
-        <h2 className="text-xl font-mono font-bold text-primary">Contact Manager Demo</h2>
-        <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
-          Powered by Custom RDBMS
-        </span>
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <Database className="w-6 h-6 text-primary" />
+          <h2 className="text-xl font-mono font-bold text-primary">Contact Manager Demo</h2>
+          <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
+            Powered by Custom RDBMS
+          </span>
+        </div>
+        <Button onClick={loadSampleData} variant="outline" className="font-mono text-sm gap-2">
+          <Sparkles className="w-4 h-4" />
+          Load Sample Data
+        </Button>
       </div>
 
       {/* Add/Edit Form */}
@@ -273,7 +314,7 @@ export const ContactManager = () => {
               ) : filteredContacts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground font-mono">
-                    No contacts found. Add one above!
+                    No contacts found. Add one above or load sample data!
                   </TableCell>
                 </TableRow>
               ) : (
