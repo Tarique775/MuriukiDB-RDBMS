@@ -8,10 +8,12 @@ import { GameStats } from '@/components/GameStats';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { TabButton } from '@/components/TabButton';
 import { Leaderboard } from '@/components/Leaderboard';
+import { ProfilePanel } from '@/components/ProfilePanel';
 import { FadeContent } from '@/components/animations/FadeContent';
 import { DecryptedText } from '@/components/animations/DecryptedText';
-import { Terminal, Users, Github, History, Code, Heart, Trophy, Award, ChevronDown, ChevronUp } from 'lucide-react';
+import { Terminal, Users, Github, History, Code, Heart, Trophy, Award, User } from 'lucide-react';
 import { useUserFingerprint } from '@/hooks/useUserFingerprint';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -23,7 +25,7 @@ import {
 } from "@/components/ui/sheet";
 
 type Tab = 'repl' | 'contacts';
-type SidePanel = 'history' | 'samples' | 'leaderboard';
+type SidePanel = 'history' | 'samples' | 'leaderboard' | 'profile';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>('repl');
@@ -31,6 +33,7 @@ const Index = () => {
   const [selectedQuery, setSelectedQuery] = useState('');
   const [mobilePanel, setMobilePanel] = useState<SidePanel | null>(null);
   const { userInfo } = useUserFingerprint();
+  const { user } = useAuth();
 
   const handleSelectQuery = (query: string) => {
     setSelectedQuery(query);
@@ -173,6 +176,26 @@ const Index = () => {
             </div>
           </SheetContent>
         </Sheet>
+
+        {user && (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
+                <User className="w-3.5 h-3.5" />
+                Profile
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[70vh] glass-card">
+              <SheetHeader>
+                <SheetTitle className="font-mono text-primary">Your Profile</SheetTitle>
+                <SheetDescription>Manage your account</SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 h-[calc(100%-4rem)] overflow-auto">
+                <ProfilePanel />
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
 
       {/* Main Content */}
@@ -213,12 +236,22 @@ const Index = () => {
               >
                 Rank
               </TabButton>
+              {user && (
+                <TabButton 
+                  active={sidePanel === 'profile'} 
+                  onClick={() => setSidePanel('profile')}
+                  icon={<User className="w-3 h-3" />}
+                >
+                  Profile
+                </TabButton>
+              )}
             </div>
             
-            <div className="h-[calc(100vh-220px)] min-h-[400px]">
+            <div className="h-[calc(100vh-220px)] min-h-[400px] overflow-auto">
               {sidePanel === 'samples' && <SampleQueries onSelectQuery={handleSelectQuery} />}
               {sidePanel === 'history' && <QueryHistory onSelectQuery={handleSelectQuery} />}
               {sidePanel === 'leaderboard' && <Leaderboard />}
+              {sidePanel === 'profile' && user && <ProfilePanel />}
             </div>
           </div>
         </div>

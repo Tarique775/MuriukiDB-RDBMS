@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_activity: {
+        Row: {
+          activity_date: string
+          created_at: string
+          id: string
+          queries_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_date?: string
+          created_at?: string
+          id?: string
+          queries_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_date?: string
+          created_at?: string
+          id?: string
+          queries_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leaderboard: {
         Row: {
           badges: string[] | null
@@ -65,6 +92,39 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
           xp?: number
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          backoff_until: string | null
+          created_at: string
+          endpoint: string
+          id: string
+          identifier: string
+          last_request: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          backoff_until?: string | null
+          created_at?: string
+          endpoint?: string
+          id?: string
+          identifier: string
+          last_request?: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          backoff_until?: string | null
+          created_at?: string
+          endpoint?: string
+          id?: string
+          identifier?: string
+          last_request?: string
+          request_count?: number
+          window_start?: string
         }
         Relationships: []
       }
@@ -159,7 +219,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      compute_user_streak: {
+        Args: { p_user_id: string }
+        Returns: {
+          current_streak: number
+          highest_streak: number
+        }[]
+      }
+      record_query_activity: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
