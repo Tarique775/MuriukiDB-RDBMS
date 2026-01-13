@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      leaderboard: {
+        Row: {
+          badges: string[] | null
+          browser_fingerprint: string | null
+          created_at: string
+          id: string
+          last_seen: string
+          level: number
+          nickname: string
+          queries_executed: number
+          rows_inserted: number
+          tables_created: number
+          updated_at: string
+          xp: number
+        }
+        Insert: {
+          badges?: string[] | null
+          browser_fingerprint?: string | null
+          created_at?: string
+          id?: string
+          last_seen?: string
+          level?: number
+          nickname: string
+          queries_executed?: number
+          rows_inserted?: number
+          tables_created?: number
+          updated_at?: string
+          xp?: number
+        }
+        Update: {
+          badges?: string[] | null
+          browser_fingerprint?: string | null
+          created_at?: string
+          id?: string
+          last_seen?: string
+          level?: number
+          nickname?: string
+          queries_executed?: number
+          rows_inserted?: number
+          tables_created?: number
+          updated_at?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       rdbms_query_history: {
         Row: {
           created_at: string
