@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useGameStats, RANKS, getRankInfo } from '@/hooks/useGameStats';
+import { useGameStats, getRankInfo } from '@/hooks/useGameStats';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   User, Edit2, Save, X, Loader2, Trophy, Zap, 
-  Calendar, Flame, Target, Award, LogOut 
+  Calendar, Flame, Target, Award, LogOut, AlertTriangle 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { FadeContent } from './animations/FadeContent';
+import { TerminalAuth } from './TerminalAuth';
 
 interface LeaderboardEntry {
   id: string;
@@ -38,6 +39,7 @@ export function ProfilePanel() {
   const [saving, setSaving] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   const [globalRank, setGlobalRank] = useState<number | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -128,12 +130,45 @@ export function ProfilePanel() {
     toast.success('Logged out');
   };
 
+  if (showAuth) {
+    return (
+      <div className="h-full">
+        <TerminalAuth 
+          onComplete={() => {
+            setShowAuth(false);
+            fetchProfile();
+          }} 
+          onCancel={() => setShowAuth(false)} 
+        />
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <Card className="glass-card border-primary/30">
-        <CardContent className="py-8 text-center">
-          <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground font-mono">Not logged in</p>
+        <CardContent className="py-6 space-y-4">
+          <div className="text-center">
+            <User className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-sm font-mono font-semibold mb-1">Not signed in</p>
+            <p className="text-xs text-muted-foreground">Sign in to save your progress</p>
+          </div>
+          
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-xs font-mono text-destructive">
+                Your local data will be lost after 7 days of inactivity if you don't sign up!
+              </p>
+            </div>
+          </div>
+
+          <Button 
+            onClick={() => setShowAuth(true)} 
+            className="w-full font-mono"
+          >
+            Sign In / Sign Up
+          </Button>
         </CardContent>
       </Card>
     );

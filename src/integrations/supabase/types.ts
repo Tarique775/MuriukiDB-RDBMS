@@ -135,7 +135,9 @@ export type Database = {
           id: string
           query: string
           result: Json | null
+          session_id: string | null
           success: boolean
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -143,7 +145,9 @@ export type Database = {
           id?: string
           query: string
           result?: Json | null
+          session_id?: string | null
           success?: boolean
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -151,7 +155,9 @@ export type Database = {
           id?: string
           query?: string
           result?: Json | null
+          session_id?: string | null
           success?: boolean
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -160,6 +166,7 @@ export type Database = {
           created_at: string
           data: Json
           id: string
+          session_id: string | null
           table_id: string
           updated_at: string
         }
@@ -167,6 +174,7 @@ export type Database = {
           created_at?: string
           data?: Json
           id?: string
+          session_id?: string | null
           table_id: string
           updated_at?: string
         }
@@ -174,6 +182,7 @@ export type Database = {
           created_at?: string
           data?: Json
           id?: string
+          session_id?: string | null
           table_id?: string
           updated_at?: string
         }
@@ -193,24 +202,30 @@ export type Database = {
           created_at: string
           id: string
           indexes: Json
+          session_id: string | null
           table_name: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           columns?: Json
           created_at?: string
           id?: string
           indexes?: Json
+          session_id?: string | null
           table_name: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           columns?: Json
           created_at?: string
           id?: string
           indexes?: Json
+          session_id?: string | null
           table_name?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -219,6 +234,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_inactive_users: { Args: never; Returns: undefined }
       compute_user_streak: {
         Args: { p_user_id: string }
         Returns: {

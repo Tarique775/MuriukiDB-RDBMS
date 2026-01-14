@@ -39,23 +39,31 @@ export function Leaderboard() {
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      // Exclude browser_fingerprint from select for privacy
+      // Exclude user_id and browser_fingerprint from select for privacy
       const { data, error } = await supabase
         .from('leaderboard')
-        .select('id, nickname, xp, level, queries_executed, badges, user_id')
+        .select('id, nickname, xp, level, queries_executed, badges')
         .order('xp', { ascending: false })
         .limit(100);
       
       if (!error && data) {
         setEntries(data);
         
-        // Find my rank by user_id (authenticated) or check local registration
+        // Find my rank by fetching separately for current user
         if (user) {
-          const myEntry = data.findIndex(e => e.user_id === user.id);
-          if (myEntry !== -1) {
-            setMyRank(myEntry + 1);
-            setIsRegistered(true);
-            setNickname(data[myEntry].nickname);
+          const { data: myData } = await supabase
+            .from('leaderboard')
+            .select('id, nickname')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (myData) {
+            const myEntry = data.findIndex(e => e.id === myData.id);
+            if (myEntry !== -1) {
+              setMyRank(myEntry + 1);
+              setIsRegistered(true);
+              setNickname(myData.nickname);
+            }
           }
         }
       }
@@ -189,11 +197,18 @@ export function Leaderboard() {
             </div>
           ) : (
             <div className="space-y-2 pr-2">
+              {!user && (
+                <div className="mb-3 p-2 rounded-lg bg-destructive/10 border border-destructive/30">
+                  <p className="text-xs font-mono text-destructive">
+                    ⚠️ Sign up to save your progress! Unregistered data is deleted after 7 days of inactivity.
+                  </p>
+                </div>
+              )}
               {entries.map((entry, index) => (
                 <FadeContent key={entry.id} delay={index * 50} duration={300}>
                   <div
                     className={`flex items-center gap-3 p-3 rounded-lg transition-all hover:bg-primary/10 ${
-                      user && entry.user_id === user.id
+                      myRank === index + 1
                         ? 'bg-primary/20 border border-primary/50'
                         : 'bg-secondary/30'
                     }`}
