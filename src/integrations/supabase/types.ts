@@ -231,7 +231,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leaderboard_public: {
+        Row: {
+          badges: string[] | null
+          created_at: string | null
+          current_streak: number | null
+          highest_streak: number | null
+          id: string | null
+          last_seen: string | null
+          level: number | null
+          nickname: string | null
+          queries_executed: number | null
+          rows_inserted: number | null
+          tables_created: number | null
+          xp: number | null
+        }
+        Insert: {
+          badges?: string[] | null
+          created_at?: string | null
+          current_streak?: number | null
+          highest_streak?: number | null
+          id?: string | null
+          last_seen?: string | null
+          level?: number | null
+          nickname?: string | null
+          queries_executed?: number | null
+          rows_inserted?: number | null
+          tables_created?: number | null
+          xp?: number | null
+        }
+        Update: {
+          badges?: string[] | null
+          created_at?: string | null
+          current_streak?: number | null
+          highest_streak?: number | null
+          id?: string | null
+          last_seen?: string | null
+          level?: number | null
+          nickname?: string | null
+          queries_executed?: number | null
+          rows_inserted?: number | null
+          tables_created?: number | null
+          xp?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_inactive_users: { Args: never; Returns: undefined }
