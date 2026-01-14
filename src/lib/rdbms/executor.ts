@@ -34,9 +34,54 @@ const RESOURCE_LIMITS = {
   MAX_QUERIES_PER_MINUTE: 30,
 };
 
-// Rate limiting state
+// Rate limiting state (client-side fallback + server-side enforcement)
 let queryCount = 0;
 let windowStart = Date.now();
+let serverRateLimitRemaining = 30;
+let isServerRateLimitActive = false;
+
+// Server-side rate limit check
+async function checkServerRateLimit(): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
+    };
+    
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sql-execute`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ query: 'rate-limit-check' }),
+      }
+    );
+
+    if (response.status === 429) {
+      const data = await response.json();
+      return { 
+        allowed: false, 
+        remaining: 0, 
+        retryAfter: data.retryAfter || 60 
+      };
+    }
+
+    const data = await response.json();
+    serverRateLimitRemaining = data.remaining || 30;
+    isServerRateLimitActive = true;
+    return { allowed: true, remaining: data.remaining || 30 };
+  } catch (error) {
+    // Fallback to client-side rate limiting if server is unavailable
+    console.warn('Server rate limit check failed, using client-side fallback');
+    isServerRateLimitActive = false;
+    return { allowed: true, remaining: RESOURCE_LIMITS.MAX_QUERIES_PER_MINUTE - queryCount };
+  }
+}
 
 export class QueryExecutor {
   private parser: Parser;
@@ -45,7 +90,15 @@ export class QueryExecutor {
     this.parser = new Parser();
   }
 
-  private checkRateLimit(): void {
+  private async checkRateLimit(): Promise<void> {
+    // First check server-side rate limit
+    const serverResult = await checkServerRateLimit();
+    
+    if (!serverResult.allowed) {
+      throw new Error(`Rate limit exceeded. Please wait ${serverResult.retryAfter} seconds before trying again.`);
+    }
+
+    // Also maintain client-side rate limiting as additional layer
     const now = Date.now();
     if (now - windowStart > 60000) {
       queryCount = 0;
@@ -63,8 +116,8 @@ export class QueryExecutor {
     const startTime = performance.now();
     
     try {
-      // Check rate limit
-      this.checkRateLimit();
+      // Check rate limit (now async with server-side check)
+      await this.checkRateLimit();
       
       const ast = this.parser.parse(sql);
       
