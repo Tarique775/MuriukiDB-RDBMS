@@ -39,9 +39,9 @@ export function Leaderboard() {
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      // Exclude user_id and browser_fingerprint from select for privacy
+      // Use the public view that hides sensitive data (user_id, browser_fingerprint)
       const { data, error } = await supabase
-        .from('leaderboard')
+        .from('leaderboard_public')
         .select('id, nickname, xp, level, queries_executed, badges')
         .order('xp', { ascending: false })
         .limit(100);
@@ -49,7 +49,7 @@ export function Leaderboard() {
       if (!error && data) {
         setEntries(data);
         
-        // Find my rank by fetching separately for current user
+        // Find my rank by fetching separately for current user (using main table with auth)
         if (user) {
           const { data: myData } = await supabase
             .from('leaderboard')
