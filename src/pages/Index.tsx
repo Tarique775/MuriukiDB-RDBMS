@@ -214,8 +214,8 @@ const Index = () => {
             </div>
 
             {/* Side Panel - Desktop */}
-            <div className="hidden lg:flex lg:flex-col w-80 flex-shrink-0 gap-4 h-full">
-              <div className="flex gap-2 flex-shrink-0 overflow-x-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent pb-2 min-w-0">
+            <div className="hidden lg:flex lg:flex-col w-80 xl:w-96 flex-shrink-0 gap-4 h-full">
+              <div className="flex gap-1 flex-shrink-0 overflow-x-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent pb-2 min-w-0">
                 <TabButton 
                   active={sidePanel === 'samples'} 
                   onClick={() => setSidePanel('samples')}
