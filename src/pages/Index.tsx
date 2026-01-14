@@ -215,7 +215,7 @@ const Index = () => {
 
             {/* Side Panel - Desktop */}
             <div className="hidden lg:flex lg:flex-col w-80 flex-shrink-0 gap-4 h-full">
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2 flex-shrink-0 overflow-x-auto scrollbar-hide pb-1">
                 <TabButton 
                   active={sidePanel === 'samples'} 
                   onClick={() => setSidePanel('samples')}
@@ -237,22 +237,20 @@ const Index = () => {
                 >
                   Rank
                 </TabButton>
-                {user && (
-                  <TabButton 
-                    active={sidePanel === 'profile'} 
-                    onClick={() => setSidePanel('profile')}
-                    icon={<User className="w-3 h-3" />}
-                  >
-                    Profile
-                  </TabButton>
-                )}
+                <TabButton 
+                  active={sidePanel === 'profile'} 
+                  onClick={() => setSidePanel('profile')}
+                  icon={<User className="w-3 h-3" />}
+                >
+                  Profile
+                </TabButton>
               </div>
               
               <div className="flex-1 min-h-0 overflow-auto">
                 {sidePanel === 'samples' && <SampleQueries onSelectQuery={handleSelectQuery} />}
                 {sidePanel === 'history' && <QueryHistory onSelectQuery={handleSelectQuery} />}
                 {sidePanel === 'leaderboard' && <Leaderboard />}
-                {sidePanel === 'profile' && user && <ProfilePanel />}
+                {sidePanel === 'profile' && <ProfilePanel />}
               </div>
             </div>
           </div>
