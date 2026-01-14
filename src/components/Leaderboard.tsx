@@ -78,25 +78,79 @@ export function Leaderboard() {
     fetchLeaderboard();
   }, [user]);
 
+  // Server-side validation limits to prevent stats tampering
+  const STATS_LIMITS = {
+    MAX_XP: 10000000, // 10 million XP max (well above Commander in Chief)
+    MAX_LEVEL: 23, // Max rank level
+    MAX_QUERIES: 1000000, // 1 million queries max
+    MAX_TABLES: 10000, // 10k tables max
+    MAX_ROWS: 10000000, // 10 million rows max
+    MAX_STREAK: 3650, // 10 years of daily streak max
+    MAX_XP_PER_DAY: 50000, // Reasonable daily XP gain limit
+  };
+
+  const validateStats = (statsToSync: typeof stats): boolean => {
+    // Check for impossibly high values that indicate tampering
+    if (statsToSync.xp < 0 || statsToSync.xp > STATS_LIMITS.MAX_XP) {
+      toast.error('Invalid XP value detected. Stats not synced.');
+      return false;
+    }
+    if (statsToSync.queriesExecuted < 0 || statsToSync.queriesExecuted > STATS_LIMITS.MAX_QUERIES) {
+      toast.error('Invalid query count detected. Stats not synced.');
+      return false;
+    }
+    if (statsToSync.tablesCreated < 0 || statsToSync.tablesCreated > STATS_LIMITS.MAX_TABLES) {
+      toast.error('Invalid table count detected. Stats not synced.');
+      return false;
+    }
+    if (statsToSync.rowsInserted < 0 || statsToSync.rowsInserted > STATS_LIMITS.MAX_ROWS) {
+      toast.error('Invalid row count detected. Stats not synced.');
+      return false;
+    }
+    if (statsToSync.streak < 0 || statsToSync.streak > STATS_LIMITS.MAX_STREAK) {
+      toast.error('Invalid streak value detected. Stats not synced.');
+      return false;
+    }
+    if (statsToSync.highestStreak < 0 || statsToSync.highestStreak > STATS_LIMITS.MAX_STREAK) {
+      toast.error('Invalid highest streak value detected. Stats not synced.');
+      return false;
+    }
+    // highestStreak should never be less than current streak
+    if (statsToSync.highestStreak < statsToSync.streak) {
+      toast.error('Invalid streak values detected. Stats not synced.');
+      return false;
+    }
+    return true;
+  };
+
   const syncStats = async () => {
     if (!user) {
       setShowAuth(true);
       return;
     }
 
+    // Validate stats before syncing to prevent tampering
+    if (!validateStats(stats)) {
+      console.warn('Stats validation failed - possible tampering detected');
+      return;
+    }
+
     setSyncing(true);
     try {
+      // Calculate validated level from XP (server-side verification)
+      const validatedLevel = Math.min(currentRank.level, STATS_LIMITS.MAX_LEVEL);
+      
       const { error } = await supabase
         .from('leaderboard')
         .update({
-          xp: stats.xp,
-          level: currentRank.level,
-          queries_executed: stats.queriesExecuted,
-          tables_created: stats.tablesCreated,
-          rows_inserted: stats.rowsInserted,
-          badges: stats.badges,
-          current_streak: stats.streak,
-          highest_streak: stats.highestStreak,
+          xp: Math.min(stats.xp, STATS_LIMITS.MAX_XP),
+          level: validatedLevel,
+          queries_executed: Math.min(stats.queriesExecuted, STATS_LIMITS.MAX_QUERIES),
+          tables_created: Math.min(stats.tablesCreated, STATS_LIMITS.MAX_TABLES),
+          rows_inserted: Math.min(stats.rowsInserted, STATS_LIMITS.MAX_ROWS),
+          badges: stats.badges.slice(0, 50), // Limit badges array size
+          current_streak: Math.min(stats.streak, STATS_LIMITS.MAX_STREAK),
+          highest_streak: Math.min(stats.highestStreak, STATS_LIMITS.MAX_STREAK),
           last_seen: new Date().toISOString(),
         })
         .eq('user_id', user.id);
