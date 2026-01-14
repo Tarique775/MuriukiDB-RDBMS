@@ -121,66 +121,66 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Mobile Side Panel Buttons */}
-      <div className="lg:hidden flex justify-center gap-2 p-3 border-b border-border/30 flex-shrink-0">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
-              <Code className="w-3.5 h-3.5" />
-              Samples
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="h-[70vh] glass-card">
-            <SheetHeader>
-              <SheetTitle className="font-mono text-primary">Sample Queries</SheetTitle>
-              <SheetDescription>Select a query to run in the REPL</SheetDescription>
-            </SheetHeader>
-            <div className="mt-4 h-[calc(100%-4rem)]">
-              <SampleQueries onSelectQuery={handleSelectQuery} />
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
-              <History className="w-3.5 h-3.5" />
-              History
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="h-[70vh] glass-card">
-            <SheetHeader>
-              <SheetTitle className="font-mono text-primary">Query History</SheetTitle>
-              <SheetDescription>Your recent SQL queries</SheetDescription>
-            </SheetHeader>
-            <div className="mt-4 h-[calc(100%-4rem)]">
-              <QueryHistory onSelectQuery={handleSelectQuery} />
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
-              <Trophy className="w-3.5 h-3.5" />
-              Rank
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="h-[70vh] glass-card">
-            <SheetHeader>
-              <SheetTitle className="font-mono text-primary">Global Leaderboard</SheetTitle>
-              <SheetDescription>Compete with other developers</SheetDescription>
-            </SheetHeader>
-            <div className="mt-4 h-[calc(100%-4rem)]">
-              <Leaderboard />
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        {user && (
+      {/* Mobile/Tablet Side Panel Tabs */}
+      <div className="lg:hidden flex-shrink-0 border-b border-border/30">
+        <div className="flex gap-2 p-3 overflow-x-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button">
+              <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
+                <Code className="w-3.5 h-3.5" />
+                Samples
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[70vh] glass-card">
+              <SheetHeader>
+                <SheetTitle className="font-mono text-primary">Sample Queries</SheetTitle>
+                <SheetDescription>Select a query to run in the REPL</SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 h-[calc(100%-4rem)]">
+                <SampleQueries onSelectQuery={handleSelectQuery} />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
+                <History className="w-3.5 h-3.5" />
+                History
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[70vh] glass-card">
+              <SheetHeader>
+                <SheetTitle className="font-mono text-primary">Query History</SheetTitle>
+                <SheetDescription>Your recent SQL queries</SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 h-[calc(100%-4rem)]">
+                <QueryHistory onSelectQuery={handleSelectQuery} />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
+                <Trophy className="w-3.5 h-3.5" />
+                Rank
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[70vh] glass-card">
+              <SheetHeader>
+                <SheetTitle className="font-mono text-primary">Global Leaderboard</SheetTitle>
+                <SheetDescription>Compete with other developers</SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 h-[calc(100%-4rem)]">
+                <Leaderboard />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
                 <User className="w-3.5 h-3.5" />
                 Profile
               </Button>
@@ -195,7 +195,7 @@ const Index = () => {
               </div>
             </SheetContent>
           </Sheet>
-        )}
+        </div>
       </div>
 
       {/* Main Content */}

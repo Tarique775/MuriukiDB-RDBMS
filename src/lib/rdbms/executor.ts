@@ -258,7 +258,8 @@ export class QueryExecutor {
         const colName = insertColumns[i];
         const colDef = columns.find(c => c.name === colName);
         if (!colDef) {
-          throw new Error(`Unknown column: ${colName}`);
+          const availableCols = columns.map(c => c.name).join(', ');
+          throw new Error(`Unknown column: '${colName}'. Available columns in ${node.tableName}: ${availableCols}. Use 'DESCRIBE ${node.tableName}' to see table structure.`);
         }
         
         const value = values[i];
@@ -485,7 +486,8 @@ export class QueryExecutor {
       for (const [colName, value] of Object.entries(node.set)) {
         const colDef = columns.find(c => c.name === colName);
         if (!colDef) {
-          throw new Error(`Unknown column: ${colName}`);
+          const availableCols = columns.map(c => c.name).join(', ');
+          throw new Error(`Unknown column: '${colName}'. Available columns: ${availableCols}. Use 'DESCRIBE ${node.tableName}' to see table structure.`);
         }
         data[colName] = this.validateAndConvertValue(value, colDef);
       }
@@ -552,7 +554,8 @@ export class QueryExecutor {
     const columns = table.columns as ColumnDefinition[];
     for (const col of node.columns) {
       if (!columns.some(c => c.name === col)) {
-        throw new Error(`Unknown column: ${col}`);
+        const availableCols = columns.map(c => c.name).join(', ');
+        throw new Error(`Unknown column: '${col}'. Available columns in ${node.tableName}: ${availableCols}`);
       }
     }
 
@@ -652,7 +655,35 @@ export class QueryExecutor {
       .maybeSingle();
 
     if (error) throw new Error(error.message);
-    if (!data) throw new Error(`Table ${tableName} does not exist`);
+    if (!data) {
+      // Provide helpful error message with suggestions
+      const { data: tables } = await supabase
+        .from('rdbms_tables')
+        .select('table_name')
+        .limit(10);
+      
+      let helpMessage = `Table '${tableName}' does not exist.`;
+      
+      if (tables && tables.length > 0) {
+        const tableNames = tables.map(t => t.table_name);
+        // Check for similar table names (fuzzy match)
+        const similar = tableNames.filter(t => 
+          t.toLowerCase().includes(tableName.toLowerCase()) ||
+          tableName.toLowerCase().includes(t.toLowerCase())
+        );
+        
+        if (similar.length > 0) {
+          helpMessage += ` Did you mean: ${similar.join(', ')}?`;
+        } else {
+          helpMessage += ` Available tables: ${tableNames.join(', ')}.`;
+        }
+        helpMessage += ` Use 'SHOW TABLES' to list all tables.`;
+      } else {
+        helpMessage += ` No tables exist yet. Create one with: CREATE TABLE ${tableName} (id INTEGER PRIMARY KEY, name TEXT)`;
+      }
+      
+      throw new Error(helpMessage);
+    }
 
     return {
       id: data.id,
