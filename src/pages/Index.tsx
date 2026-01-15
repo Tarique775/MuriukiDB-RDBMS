@@ -263,7 +263,11 @@ const Index = () => {
           <p className="text-center text-xs font-mono text-muted-foreground flex items-center justify-center gap-1 flex-wrap">
             <span className="text-primary font-bold">Pesapal Junior Dev Challenge '26</span> 
             <span>•</span> 
-            Built by Samuel-Muriuki in collaboration with 
+            Built by{' '}
+            <a href="https://samuel-muriuki.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">
+              Samuel-Muriuki
+            </a>
+            {' '}in collaboration with 
             <Heart className="w-3 h-3 text-destructive inline animate-pulse" />
             <a href="https://lovable.dev/invite/A5KC0U8" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
               Lovable

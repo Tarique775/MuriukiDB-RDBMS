@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface UserInfo {
   fingerprint: string;
@@ -69,31 +69,63 @@ function generateFingerprint(): string {
   return Math.abs(hash).toString(36);
 }
 
+// Session key for tracking visits within a single browser session
+const SESSION_KEY = 'muriukidb-session-id';
+
+function getOrCreateSessionId(): string {
+  // Use sessionStorage to track the current session
+  let sessionId = sessionStorage.getItem(SESSION_KEY);
+  if (!sessionId) {
+    sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    sessionStorage.setItem(SESSION_KEY, sessionId);
+  }
+  return sessionId;
+}
+
 export function useUserFingerprint() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
+    // Prevent double initialization in StrictMode
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     const fingerprint = generateFingerprint();
     const storageKey = 'muriukidb-user-info';
     const stored = localStorage.getItem(storageKey);
     const { browser, os, device } = getBrowserInfo();
     const now = new Date().toISOString();
     
+    // Get or create session ID - visits only increment once per session
+    const currentSessionId = getOrCreateSessionId();
+    
     let info: UserInfo;
     
     if (stored) {
       const parsed = JSON.parse(stored);
+      const lastSessionId = parsed.lastSessionId || '';
+      
+      // Only increment visit count if this is a new session
+      const isNewSession = currentSessionId !== lastSessionId;
+      
       info = {
         fingerprint,
         isReturning: true,
-        visitCount: parsed.visitCount + 1,
+        visitCount: isNewSession ? parsed.visitCount + 1 : parsed.visitCount,
         firstVisit: parsed.firstVisit,
         lastVisit: now,
         browser,
         os,
         device,
       };
+      
+      // Store with session ID to track session
+      localStorage.setItem(storageKey, JSON.stringify({
+        ...info,
+        lastSessionId: currentSessionId,
+      }));
     } else {
       info = {
         fingerprint,
@@ -105,9 +137,13 @@ export function useUserFingerprint() {
         os,
         device,
       };
+      
+      localStorage.setItem(storageKey, JSON.stringify({
+        ...info,
+        lastSessionId: currentSessionId,
+      }));
     }
     
-    localStorage.setItem(storageKey, JSON.stringify(info));
     setUserInfo(info);
     setLoading(false);
   }, []);

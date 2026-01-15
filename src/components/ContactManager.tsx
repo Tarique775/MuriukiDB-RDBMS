@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { UserPlus, Trash2, Edit2, Search, Database, RefreshCw, Sparkles, X, CheckSquare, ChevronLeft, ChevronRight, Loader2, Download, FileJson, FileText, Upload } from 'lucide-react';
 import { useGameStats } from '@/hooks/useGameStats';
 import { FadeContent } from '@/components/animations/FadeContent';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import {
   Tooltip,
   TooltipContent,
@@ -71,6 +72,10 @@ export const ContactManager = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [focusedRowIndex, setFocusedRowIndex] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const { addXP, incrementRowsInserted } = useGameStats();
@@ -147,19 +152,30 @@ export const ContactManager = () => {
   const loadSampleData = async () => {
     setLoadingSample(true);
     let successCount = 0;
+    let failedCount = 0;
     
-    for (let i = 0; i < 5; i++) {
+    // Generate more contacts to ensure some succeed even with duplicates
+    for (let i = 0; i < 8; i++) {
       const contact = generateRandomContact();
       try {
+        // Escape single quotes in values
+        const escapedName = contact.name.replace(/'/g, "''");
+        const escapedEmail = contact.email.replace(/'/g, "''");
+        const escapedPhone = contact.phone.replace(/'/g, "''");
+        
         const result = await executor.execute(`
           INSERT INTO contacts (name, email, phone) 
-          VALUES ('${contact.name}', '${contact.email}', '${contact.phone}')
+          VALUES ('${escapedName}', '${escapedEmail}', '${escapedPhone}')
         `);
         if (result.success) {
           successCount++;
+          if (successCount >= 5) break; // Stop after 5 successful inserts
+        } else {
+          failedCount++;
         }
       } catch (error) {
-        // Skip duplicates
+        failedCount++;
+        // Skip duplicates silently
       }
     }
     
@@ -167,14 +183,21 @@ export const ContactManager = () => {
       toast.success(`Added ${successCount} sample contacts! +${successCount * 10} XP`);
       addXP(successCount * 10, 'sample_data');
       incrementRowsInserted(successCount);
+    } else if (failedCount > 0) {
+      toast.error('Failed to add sample data. The table might need to be initialized first.');
     } else {
-      toast.info('Could not add sample data (possible duplicates)');
+      toast.info('No new contacts added');
     }
     await fetchContacts();
     setLoadingSample(false);
   };
 
   const removeSampleData = async () => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmRemoveSampleData = async () => {
+    setShowClearConfirm(false);
     if (allContacts.length === 0) {
       toast.info('No data to remove');
       return;
@@ -258,15 +281,23 @@ export const ContactManager = () => {
   };
 
   const handleDelete = async (id: number) => {
+    setPendingDeleteId(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (pendingDeleteId === null) return;
+    
+    setShowDeleteConfirm(false);
     setDeleting(true);
     try {
-      const result = await executor.execute(`DELETE FROM contacts WHERE id = ${id}`);
+      const result = await executor.execute(`DELETE FROM contacts WHERE id = ${pendingDeleteId}`);
       if (result.success) {
         // Optimistic update
-        setAllContacts(prev => prev.filter(c => c.id !== id));
+        setAllContacts(prev => prev.filter(c => c.id !== pendingDeleteId));
         setSelectedIds(prev => {
           const newSet = new Set(prev);
-          newSet.delete(id);
+          newSet.delete(pendingDeleteId);
           return newSet;
         });
         toast.success('Contact deleted');
@@ -277,6 +308,7 @@ export const ContactManager = () => {
       toast.error(error.message || 'Delete failed');
     } finally {
       setDeleting(false);
+      setPendingDeleteId(null);
     }
   };
 
@@ -337,7 +369,11 @@ export const ContactManager = () => {
       toast.error('Select contacts to delete');
       return;
     }
+    setShowBatchDeleteConfirm(true);
+  };
 
+  const confirmBatchDelete = async () => {
+    setShowBatchDeleteConfirm(false);
     setBatchDeleting(true);
     try {
       for (const id of selectedIds) {
@@ -902,6 +938,39 @@ export const ContactManager = () => {
       <p className="text-xs text-muted-foreground font-mono text-center">
         All operations use the custom SQL engine • Data persisted to Lovable Cloud
       </p>
+
+      {/* Confirmation Dialogs */}
+      <DeleteConfirmDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Clear All Contacts?"
+        description={`This will permanently delete all ${allContacts.length} contacts from the database.`}
+        warningMessage="This action cannot be undone!"
+        onConfirm={confirmRemoveSampleData}
+        confirmText="Clear All"
+      />
+
+      <DeleteConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open);
+          if (!open) setPendingDeleteId(null);
+        }}
+        title="Delete Contact?"
+        description="This will permanently delete this contact from the database."
+        onConfirm={confirmDelete}
+        confirmText="Delete"
+      />
+
+      <DeleteConfirmDialog
+        open={showBatchDeleteConfirm}
+        onOpenChange={setShowBatchDeleteConfirm}
+        title={`Delete ${selectedIds.size} Contacts?`}
+        description={`This will permanently delete ${selectedIds.size} selected contacts from the database.`}
+        warningMessage="This action cannot be undone!"
+        onConfirm={confirmBatchDelete}
+        confirmText="Delete All Selected"
+      />
     </div>
   );
 };

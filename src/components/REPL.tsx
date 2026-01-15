@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { QueryExecutor, highlightSQL, QueryResult } from '@/lib/rdbms';
 import { useGameStats } from '@/hooks/useGameStats';
 import { toast } from 'sonner';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
 interface HistoryEntry {
   query: string;
@@ -14,12 +15,18 @@ interface REPLProps {
   onQueryChange?: (query: string) => void;
 }
 
+// Tables that have special significance in the app
+const PROTECTED_TABLES = ['contacts'];
+
 export function REPL({ initialQuery, onQueryChange }: REPLProps) {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [pendingQuery, setPendingQuery] = useState<string | null>(null);
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
+  const [deleteWarningInfo, setDeleteWarningInfo] = useState({ title: '', description: '', warning: '' });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const executor = useRef(new QueryExecutor());
@@ -79,10 +86,50 @@ export function REPL({ initialQuery, onQueryChange }: REPLProps) {
     return () => window.removeEventListener('keydown', handleKeyboardShortcuts);
   }, [input, isExecuting]);
 
-  const executeQuery = useCallback(async () => {
-    const query = input.trim();
-    if (!query || isExecuting) return;
+  // Check if query is destructive and needs a warning
+  const checkDestructiveQuery = useCallback((query: string): { needsWarning: boolean; title: string; description: string; warning: string } => {
+    const upperQuery = query.toUpperCase().trim();
+    
+    // Check for DROP TABLE
+    if (upperQuery.startsWith('DROP TABLE')) {
+      const tableMatch = query.match(/DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?(\w+)/i);
+      const tableName = tableMatch?.[1]?.toLowerCase();
+      
+      if (tableName && PROTECTED_TABLES.includes(tableName)) {
+        return {
+          needsWarning: true,
+          title: `Drop "${tableName}" table?`,
+          description: `You are about to permanently delete the "${tableName}" table and all its data.`,
+          warning: `This will delete all data in the Contact Manager Demo app!`,
+        };
+      }
+      return {
+        needsWarning: true,
+        title: `Drop "${tableName || 'table'}"?`,
+        description: `You are about to permanently delete the "${tableName || 'table'}" table and all its data.`,
+        warning: 'This action cannot be undone!',
+      };
+    }
+    
+    // Check for DELETE without WHERE (delete all)
+    if (upperQuery.startsWith('DELETE') && !upperQuery.includes('WHERE')) {
+      const tableMatch = query.match(/DELETE\s+FROM\s+(\w+)/i);
+      const tableName = tableMatch?.[1]?.toLowerCase();
+      
+      return {
+        needsWarning: true,
+        title: `Delete all rows from "${tableName || 'table'}"?`,
+        description: `This will delete ALL rows from the "${tableName || 'table'}" table.`,
+        warning: tableName && PROTECTED_TABLES.includes(tableName) 
+          ? 'This will clear all Contact Manager Demo data!' 
+          : 'This action cannot be undone!',
+      };
+    }
+    
+    return { needsWarning: false, title: '', description: '', warning: '' };
+  }, []);
 
+  const executeQueryInternal = useCallback(async (query: string) => {
     setIsExecuting(true);
     setCommandHistory(prev => [query, ...prev.slice(0, 99)]);
     setHistoryIndex(-1);
@@ -108,7 +155,7 @@ export function REPL({ initialQuery, onQueryChange }: REPLProps) {
           toast.success(`+${10 * rowCount} XP - Data inserted!`, { duration: 2000 });
         } else if (upperQuery.startsWith('SELECT')) {
           addXP(5, 'select');
-        } else if (upperQuery.startsWith('UPDATE') || upperQuery.startsWith('DELETE')) {
+        } else if (upperQuery.startsWith('UPDATE') || upperQuery.startsWith('DELETE') || upperQuery.startsWith('DROP')) {
           addXP(15, 'modify');
         } else {
           addXP(5, 'query');
@@ -126,7 +173,35 @@ export function REPL({ initialQuery, onQueryChange }: REPLProps) {
     setInput('');
     onQueryChange?.('');
     setIsExecuting(false);
-  }, [input, isExecuting, addXP, incrementQueries, incrementTablesCreated, incrementRowsInserted, onQueryChange]);
+  }, [addXP, incrementQueries, incrementTablesCreated, incrementRowsInserted, onQueryChange]);
+
+  const executeQuery = useCallback(async () => {
+    const query = input.trim();
+    if (!query || isExecuting) return;
+
+    // Check if query is destructive
+    const destructiveCheck = checkDestructiveQuery(query);
+    if (destructiveCheck.needsWarning) {
+      setPendingQuery(query);
+      setDeleteWarningInfo({
+        title: destructiveCheck.title,
+        description: destructiveCheck.description,
+        warning: destructiveCheck.warning,
+      });
+      setShowDeleteWarning(true);
+      return;
+    }
+
+    await executeQueryInternal(query);
+  }, [input, isExecuting, checkDestructiveQuery, executeQueryInternal]);
+
+  const handleConfirmDestructiveQuery = useCallback(async () => {
+    if (pendingQuery) {
+      await executeQueryInternal(pendingQuery);
+      setPendingQuery(null);
+    }
+    setShowDeleteWarning(false);
+  }, [pendingQuery, executeQueryInternal]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -259,10 +334,25 @@ export function REPL({ initialQuery, onQueryChange }: REPLProps) {
               disabled={isExecuting}
               spellCheck={false}
             />
-            {isExecuting && <span className="text-muted-foreground ml-2">Executing...</span>}
+          {isExecuting && <span className="text-muted-foreground ml-2">Executing...</span>}
           </div>
         </div>
       </div>
+
+      {/* Destructive Query Warning Dialog */}
+      <DeleteConfirmDialog
+        open={showDeleteWarning}
+        onOpenChange={(open) => {
+          setShowDeleteWarning(open);
+          if (!open) setPendingQuery(null);
+        }}
+        title={deleteWarningInfo.title}
+        description={deleteWarningInfo.description}
+        warningMessage={deleteWarningInfo.warning}
+        onConfirm={handleConfirmDestructiveQuery}
+        confirmText="Execute Query"
+        cancelText="Cancel"
+      />
     </div>
   );
 }
