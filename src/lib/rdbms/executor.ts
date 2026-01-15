@@ -26,6 +26,29 @@ import { Json } from '@/integrations/supabase/types';
 // In-memory index cache
 const indexCache: Map<string, BTree<unknown>> = new Map();
 
+// Session key for tracking anonymous users
+const SESSION_KEY = 'muriukidb-session-id';
+
+function getOrCreateSessionId(): string {
+  // Use sessionStorage to track the current session
+  let sessionId = sessionStorage.getItem(SESSION_KEY);
+  if (!sessionId) {
+    sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    sessionStorage.setItem(SESSION_KEY, sessionId);
+  }
+  return sessionId;
+}
+
+// Get user context for RLS compliance
+async function getUserContext(): Promise<{ userId: string | null; sessionId: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const sessionId = getOrCreateSessionId();
+  return {
+    userId: session?.user?.id || null,
+    sessionId,
+  };
+}
+
 // Resource limits to prevent abuse
 const RESOURCE_LIMITS = {
   MAX_TABLES: 50,
@@ -176,6 +199,8 @@ export class QueryExecutor {
   }
 
   private async executeCreateTable(node: CreateTableNode): Promise<QueryResult> {
+    const { userId, sessionId } = await getUserContext();
+    
     // Check table limit to prevent resource exhaustion
     const { count: tableCount } = await supabase
       .from('rdbms_tables')
@@ -185,7 +210,7 @@ export class QueryExecutor {
       throw new Error(`Maximum table limit reached (${RESOURCE_LIMITS.MAX_TABLES} tables). Drop unused tables first.`);
     }
 
-    // Check if table exists
+    // Check if table exists (for this user's context)
     const { data: existing } = await supabase
       .from('rdbms_tables')
       .select('id')
@@ -212,11 +237,13 @@ export class QueryExecutor {
       });
     }
 
-    // Create table
+    // Create table with user context for RLS
     const { error } = await supabase.from('rdbms_tables').insert({
       table_name: node.tableName,
       columns: node.columns as unknown as Json,
       indexes: [] as unknown as Json,
+      session_id: sessionId,
+      user_id: userId || undefined,
     });
 
     if (error) throw new Error(error.message);
@@ -835,11 +862,15 @@ export class QueryExecutor {
 
   private async logQuery(sql: string, result: QueryResult): Promise<void> {
     try {
+      const { userId, sessionId } = await getUserContext();
+      
       await supabase.from('rdbms_query_history').insert({
         query: sql,
         result: result as unknown as Json,
         success: result.success,
         execution_time_ms: result.executionTime,
+        session_id: sessionId,
+        user_id: userId || undefined,
       });
     } catch {
       // Ignore logging errors

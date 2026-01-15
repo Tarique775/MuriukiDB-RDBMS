@@ -65,18 +65,14 @@ export const QueryHistory = ({ onSelectQuery }: QueryHistoryProps) => {
     fetchHistory();
   }, []);
 
-  // Get session ID from localStorage for matching own queries
+  // Get session ID from sessionStorage for matching own queries
   const getSessionId = () => {
     try {
-      const stored = localStorage.getItem('muriukidb-user-info');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed.fingerprint;
-      }
+      // Use the same session ID as the executor
+      return sessionStorage.getItem('muriukidb-session-id');
     } catch {
       return null;
     }
-    return null;
   };
 
   // Filter history based on filter mode and search term
