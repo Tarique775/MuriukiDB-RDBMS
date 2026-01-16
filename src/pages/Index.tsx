@@ -157,7 +157,8 @@ const Index = () => {
                 href="https://github.com/Samuel-Muriuki" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-primary transition-colors hidden sm:block"
+                className="text-muted-foreground hover:text-primary transition-colors p-1.5"
+                title="GitHub"
               >
                 <Github className="w-4 sm:w-5 h-4 sm:h-5" />
               </a>

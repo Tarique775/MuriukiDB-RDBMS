@@ -1,83 +1,117 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface UseRealtimeTableOptions {
   tableName: string;
+  tableId?: string | null;
   onUpdate: () => void;
   enabled?: boolean;
 }
 
-export function useRealtimeTable({ tableName, onUpdate, enabled = true }: UseRealtimeTableOptions) {
+/**
+ * Hook for subscribing to real-time updates on a specific table.
+ * Uses stable refs to avoid subscription churn and prevent blinking.
+ */
+export function useRealtimeTable({ 
+  tableName, 
+  tableId,
+  onUpdate, 
+  enabled = true 
+}: UseRealtimeTableOptions) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const onUpdateRef = useRef(onUpdate);
+  const subscribedTableIdRef = useRef<string | null>(null);
+
+  // Keep callback ref updated without triggering re-subscription
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
 
   useEffect(() => {
-    if (!enabled) {
-      setIsConnected(false);
-      return;
-    }
-
-    const channelName = `realtime-${tableName}-${Date.now()}`;
-    
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'rdbms_rows',
-        },
-        (payload) => {
-          console.log('[Realtime] Change detected:', payload.eventType);
-          setLastUpdate(new Date());
-          onUpdate();
-          
-          // Show toast for external updates
-          if (payload.eventType === 'INSERT') {
-            toast.info('New row added by another user', { duration: 2000 });
-          } else if (payload.eventType === 'UPDATE') {
-            toast.info('Data updated by another user', { duration: 2000 });
-          } else if (payload.eventType === 'DELETE') {
-            toast.info('Row deleted by another user', { duration: 2000 });
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'rdbms_tables',
-        },
-        (payload) => {
-          console.log('[Realtime] Table change detected:', payload.eventType);
-          setLastUpdate(new Date());
-          onUpdate();
-        }
-      )
-      .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status);
-        setIsConnected(status === 'SUBSCRIBED');
-      });
-
-    channelRef.current = channel;
-
-    return () => {
+    if (!enabled || !tableName) {
+      // Cleanup on disable
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
       setIsConnected(false);
+      return;
+    }
+
+    // Use deterministic channel name - only re-subscribe if tableId changes
+    const channelKey = tableId || 'all';
+    
+    // If already subscribed to the same table, don't recreate
+    if (channelRef.current && subscribedTableIdRef.current === channelKey) {
+      return;
+    }
+
+    // Cleanup previous subscription
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    const channelName = `realtime-${tableName}-${channelKey}`;
+    
+    const channel = supabase.channel(channelName);
+
+    // Subscribe to rows changes for this specific table
+    if (tableId) {
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rdbms_rows',
+          filter: `table_id=eq.${tableId}`,
+        },
+        () => {
+          setLastUpdate(new Date());
+          onUpdateRef.current();
+        }
+      );
+    }
+
+    // Subscribe to table metadata changes
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'rdbms_tables',
+        filter: tableId ? `id=eq.${tableId}` : undefined,
+      },
+      () => {
+        setLastUpdate(new Date());
+        onUpdateRef.current();
+      }
+    );
+
+    channel.subscribe((status) => {
+      setIsConnected(status === 'SUBSCRIBED');
+    });
+
+    channelRef.current = channel;
+    subscribedTableIdRef.current = channelKey;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        subscribedTableIdRef.current = null;
+      }
+      setIsConnected(false);
     };
-  }, [tableName, onUpdate, enabled]);
+  }, [tableName, tableId, enabled]);
 
   const disconnect = useCallback(() => {
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
+      subscribedTableIdRef.current = null;
       setIsConnected(false);
     }
   }, []);
@@ -101,10 +135,9 @@ export const RealtimeStatus = ({ isConnected, lastUpdate }: RealtimeStatusProps)
   return (
     <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
       <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-[hsl(var(--terminal-green))]"></span>
       </span>
-      <span className="text-green-500">Live</span>
+      <span className="text-[hsl(var(--terminal-green))]">Live</span>
       {lastUpdate && (
         <span className="text-muted-foreground/70">
           (last: {lastUpdate.toLocaleTimeString()})

@@ -263,6 +263,18 @@
     @apply text-[hsl(var(--terminal-comment))] italic;
   }
 
+  .sql-operator {
+    @apply text-[hsl(var(--terminal-red))] font-medium;
+  }
+
+  .sql-punctuation {
+    @apply text-[hsl(var(--terminal-cyan))] opacity-80;
+  }
+
+  .sql-identifier {
+    @apply text-foreground;
+  }
+
   .cursor-blink {
     animation: blink 1s step-end infinite;
   }

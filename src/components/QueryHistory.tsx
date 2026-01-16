@@ -5,10 +5,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { History, CheckCircle, XCircle, RefreshCw, Clock, Search, X, Loader2, User, Globe, Filter } from 'lucide-react';
+import { History, CheckCircle, XCircle, RefreshCw, Clock, Search, X, Loader2, User, Globe, Filter, Download } from 'lucide-react';
 import { highlightSQL } from '@/lib/rdbms';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -169,6 +170,53 @@ export const QueryHistory = ({ onSelectQuery }: QueryHistoryProps) => {
     return filtered;
   }, [history, searchTerm, filterMode, user]);
 
+  // Export query history as .sql file
+  const exportHistory = useCallback(() => {
+    if (filteredHistory.length === 0) {
+      toast.error('No queries to export');
+      return;
+    }
+
+    const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm');
+    const header = `-- MuriukiDB Query History Export
+-- Generated: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}
+-- Filter: ${getFilterLabel()}
+-- Total queries: ${filteredHistory.length}
+-- ================================================
+
+`;
+
+    const queries = filteredHistory
+      .filter(q => q.success) // Only export successful queries
+      .map((item, idx) => {
+        const date = format(new Date(item.created_at), 'yyyy-MM-dd HH:mm:ss');
+        const time = item.execution_time_ms ? `${item.execution_time_ms}ms` : 'N/A';
+        let query = item.query.trim();
+        // Ensure query ends with semicolon
+        if (!query.endsWith(';')) {
+          query += ';';
+        }
+        return `-- Query #${idx + 1} | ${date} | ${time}
+${query}
+`;
+      })
+      .join('\n');
+
+    const content = header + queries;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `muriukidb-history-${timestamp}.sql`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success(`Exported ${filteredHistory.filter(q => q.success).length} queries to .sql file`);
+  }, [filteredHistory]);
+
   const clearSearch = () => setSearchTerm('');
 
   const getFilterLabel = () => {
@@ -227,6 +275,15 @@ export const QueryHistory = ({ onSelectQuery }: QueryHistoryProps) => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => exportHistory()} 
+              className="h-7 w-7"
+              title="Export as .sql file"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={fetchHistory} className="h-7 w-7">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
