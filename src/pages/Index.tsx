@@ -3,18 +3,20 @@ import { Link } from 'react-router-dom';
 import { REPL } from '@/components/REPL';
 import { ContactManager } from '@/components/ContactManager';
 import { QueryHistory } from '@/components/QueryHistory';
-import { SampleQueries } from '@/components/SampleQueries';
+import { SampleQueries, findPrerequisiteQuery } from '@/components/SampleQueries';
 import { GameStats } from '@/components/GameStats';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { TabButton } from '@/components/TabButton';
 import { Leaderboard } from '@/components/Leaderboard';
 import { ProfilePanel } from '@/components/ProfilePanel';
+import { AppFooter } from '@/components/AppFooter';
 import { FadeContent } from '@/components/animations/FadeContent';
 import { DecryptedText } from '@/components/animations/DecryptedText';
-import { Terminal, Users, Github, History, Code, Heart, Trophy, Award, User } from 'lucide-react';
+import { Terminal, Users, Github, History, Code, Trophy, Award, User } from 'lucide-react';
 import { useUserFingerprint } from '@/hooks/useUserFingerprint';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   Sheet,
   SheetContent,
@@ -32,6 +34,7 @@ const Index = () => {
   const [sidePanel, setSidePanel] = useState<SidePanel>('samples');
   const [selectedQuery, setSelectedQuery] = useState('');
   const [mobilePanel, setMobilePanel] = useState<SidePanel | null>(null);
+  const [highlightedQueryId, setHighlightedQueryId] = useState<string | null>(null);
   const { userInfo } = useUserFingerprint();
   const { user } = useAuth();
 
@@ -39,6 +42,22 @@ const Index = () => {
     setSelectedQuery(query);
     setActiveTab('repl');
     setMobilePanel(null);
+    setHighlightedQueryId(null);
+  };
+
+  const handleQueryError = (errorMessage: string, attemptedQuery: string) => {
+    const hint = findPrerequisiteQuery(errorMessage, attemptedQuery);
+    if (hint) {
+      toast.error(hint.hint, { duration: 5000 });
+      if (hint.queryId) {
+        setSidePanel('samples');
+        setHighlightedQueryId(hint.queryId);
+      }
+    }
+  };
+
+  const handleHighlightComplete = () => {
+    setHighlightedQueryId(null);
   };
 
   return (
@@ -137,7 +156,11 @@ const Index = () => {
                 <SheetDescription>Select a query to run in the REPL</SheetDescription>
               </SheetHeader>
               <div className="mt-4 h-[calc(100%-4rem)]">
-                <SampleQueries onSelectQuery={handleSelectQuery} />
+                <SampleQueries 
+                  onSelectQuery={handleSelectQuery}
+                  highlightQueryId={highlightedQueryId}
+                  onHighlightComplete={handleHighlightComplete}
+                />
               </div>
             </SheetContent>
           </Sheet>
@@ -206,7 +229,11 @@ const Index = () => {
             <div className="flex-1 min-w-0 h-full overflow-auto">
               <FadeContent blur duration={500}>
                 {activeTab === 'repl' ? (
-                  <REPL initialQuery={selectedQuery} onQueryChange={setSelectedQuery} />
+                  <REPL 
+                    initialQuery={selectedQuery} 
+                    onQueryChange={setSelectedQuery}
+                    onQueryError={handleQueryError}
+                  />
                 ) : (
                   <ContactManager />
                 )}
@@ -247,7 +274,13 @@ const Index = () => {
               </div>
               
               <div className="flex-1 min-h-0 overflow-auto">
-                {sidePanel === 'samples' && <SampleQueries onSelectQuery={handleSelectQuery} />}
+                {sidePanel === 'samples' && (
+                  <SampleQueries 
+                    onSelectQuery={handleSelectQuery}
+                    highlightQueryId={highlightedQueryId}
+                    onHighlightComplete={handleHighlightComplete}
+                  />
+                )}
                 {sidePanel === 'history' && <QueryHistory onSelectQuery={handleSelectQuery} />}
                 {sidePanel === 'leaderboard' && <Leaderboard />}
                 {sidePanel === 'profile' && <ProfilePanel />}
@@ -258,23 +291,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 py-3 glass-card flex-shrink-0">
-        <div className="container mx-auto px-4">
-          <p className="text-center text-xs font-mono text-muted-foreground flex items-center justify-center gap-1 flex-wrap">
-            <span className="text-primary font-bold">Pesapal Junior Dev Challenge '26</span> 
-            <span>•</span> 
-            Built by{' '}
-            <a href="https://samuel-muriuki.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">
-              Samuel-Muriuki
-            </a>
-            {' '}in collaboration with 
-            <Heart className="w-3 h-3 text-destructive inline animate-pulse" />
-            <a href="https://lovable.dev/invite/A5KC0U8" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              Lovable
-            </a>
-          </p>
-        </div>
-      </footer>
+      <AppFooter />
     </div>
   );
 };

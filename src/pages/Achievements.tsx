@@ -10,6 +10,7 @@ import {
 import { FadeContent } from '@/components/animations/FadeContent';
 import { DecryptedText } from '@/components/animations/DecryptedText';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { AppFooter } from '@/components/AppFooter';
 
 export default function Achievements() {
   const { stats, currentRank, isCoolingDown, cooldownMultiplier } = useGameStats();
@@ -63,11 +64,13 @@ export default function Achievements() {
                   }`}>
                     <div className="text-center">
                       <span className="text-3xl">{currentRank.icon}</span>
-                      <p className="text-xs text-muted-foreground mt-1">RANK {currentRank.level}</p>
+                      <p className="text-xs text-foreground/80 font-semibold mt-1">RANK {currentRank.level}</p>
                     </div>
                   </div>
-                  <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-secondary text-xs font-bold ${
-                    currentRank.id >= 23 ? 'text-yellow-400' : 'text-primary'
+                  <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full border text-xs font-bold shadow-lg ${
+                    currentRank.id >= 23 
+                      ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300' 
+                      : 'bg-primary/20 border-primary/50 text-primary'
                   }`}>
                     {currentRank.name}
                   </div>
@@ -198,12 +201,12 @@ export default function Achievements() {
                         }`}
                       >
                         <div className="text-4xl mb-2 transition-transform hover:scale-110">
-                          {earned ? badge.icon : <Lock className="w-8 h-8 mx-auto text-muted-foreground" />}
+                          {earned ? badge.icon : <Lock className="w-8 h-8 mx-auto text-muted-foreground/60" />}
                         </div>
-                        <h4 className={`font-mono text-sm font-bold ${earned ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        <h4 className={`font-mono text-sm font-bold ${earned ? 'text-foreground' : 'text-foreground/60'}`}>
                           {badge.name}
                         </h4>
-                        <p className="text-xs text-muted-foreground mt-1">{badge.desc}</p>
+                        <p className={`text-xs mt-1 ${earned ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>{badge.desc}</p>
                         {earned && (
                           <CheckCircle2 className="absolute top-2 right-2 w-4 h-4 text-primary" />
                         )}
@@ -244,16 +247,7 @@ export default function Achievements() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 py-4 mt-auto">
-        <div className="container mx-auto px-4">
-          <p className="text-center text-xs font-mono text-muted-foreground">
-            Built by Samuel-Muriuki in collaboration with ❤️{' '}
-            <a href="https://lovable.dev/invite/A5KC0U8" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              Lovable
-            </a>
-          </p>
-        </div>
-      </footer>
+      <AppFooter />
     </div>
   );
 }

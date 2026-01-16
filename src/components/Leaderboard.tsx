@@ -36,8 +36,11 @@ export function Leaderboard() {
   const { userInfo } = useUserFingerprint();
   const { user, signOut } = useAuth();
 
-  const fetchLeaderboard = async () => {
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const fetchLeaderboard = async (retryCount = 0) => {
     setLoading(true);
+    setFetchError(null);
     try {
       // Use the public view that hides sensitive data (user_id, browser_fingerprint)
       const { data, error } = await supabase
@@ -46,8 +49,18 @@ export function Leaderboard() {
         .order('xp', { ascending: false })
         .limit(100);
       
-      if (!error && data) {
+      if (error) {
+        console.error('Leaderboard fetch error:', error);
+        // Retry on transient errors (406, network issues)
+        if (retryCount < 2 && (error.code === '406' || error.message?.includes('network'))) {
+          setTimeout(() => fetchLeaderboard(retryCount + 1), 1000 * (retryCount + 1));
+          return;
+        }
+        setFetchError('Unable to load leaderboard. Try refreshing.');
+        setEntries([]);
+      } else if (data) {
         setEntries(data);
+        setFetchError(null);
         
         // Find my rank by fetching separately for current user (using main table with auth)
         if (user) {
@@ -69,13 +82,18 @@ export function Leaderboard() {
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
+      if (retryCount < 2) {
+        setTimeout(() => fetchLeaderboard(retryCount + 1), 1000 * (retryCount + 1));
+        return;
+      }
+      setFetchError('Unable to load leaderboard. Try refreshing.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchLeaderboard();
+    fetchLeaderboard(0);
     // Migrate anonymous stats when user logs in
     if (user) {
       migrateAnonymousStats();
@@ -244,7 +262,7 @@ export function Leaderboard() {
             <Trophy className="w-4 h-4 text-yellow-400" />
             Global Leaderboard
           </CardTitle>
-          <Button variant="ghost" size="icon" onClick={fetchLeaderboard} className="h-7 w-7">
+          <Button variant="ghost" size="icon" onClick={() => fetchLeaderboard(0)} className="h-7 w-7">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
@@ -284,6 +302,14 @@ export function Leaderboard() {
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="font-mono text-sm">Loading rankings...</span>
+            </div>
+          ) : fetchError ? (
+            <div className="text-center py-8 space-y-3">
+              <p className="text-destructive font-mono text-sm">{fetchError}</p>
+              <Button variant="outline" size="sm" onClick={() => fetchLeaderboard(0)} className="font-mono text-xs">
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Retry
+              </Button>
             </div>
           ) : entries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground font-mono text-sm">

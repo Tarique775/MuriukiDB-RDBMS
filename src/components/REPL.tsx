@@ -13,12 +13,13 @@ interface HistoryEntry {
 interface REPLProps {
   initialQuery?: string;
   onQueryChange?: (query: string) => void;
+  onQueryError?: (errorMessage: string, attemptedQuery: string) => void;
 }
 
 // Tables that have special significance in the app
 const PROTECTED_TABLES = ['contacts'];
 
-export function REPL({ initialQuery, onQueryChange }: REPLProps) {
+export function REPL({ initialQuery, onQueryChange, onQueryError }: REPLProps) {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -160,20 +161,26 @@ export function REPL({ initialQuery, onQueryChange }: REPLProps) {
         } else {
           addXP(5, 'query');
         }
+      } else {
+        // Notify parent of error for hint display
+        const errorMsg = result.message || result.error || 'Query failed';
+        onQueryError?.(errorMsg, query);
       }
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       setHistory(prev => [...prev, {
         query,
-        result: { success: false, message: error instanceof Error ? error.message : 'Unknown error' },
+        result: { success: false, message: errorMsg },
         timestamp: new Date(),
       }]);
       incrementQueries(false);
+      onQueryError?.(errorMsg, query);
     }
 
     setInput('');
     onQueryChange?.('');
     setIsExecuting(false);
-  }, [addXP, incrementQueries, incrementTablesCreated, incrementRowsInserted, onQueryChange]);
+  }, [addXP, incrementQueries, incrementTablesCreated, incrementRowsInserted, onQueryChange, onQueryError]);
 
   const executeQuery = useCallback(async () => {
     const query = input.trim();

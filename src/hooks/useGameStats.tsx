@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode, useCallback, useRef } from 'react';
 import { getCachedUserId } from '@/lib/auth/sessionCache';
 import { getOrCreateSessionId } from '@/lib/rdbms/executor';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PointEvent {
   amount: number;
@@ -250,28 +251,57 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
   }, [stats]);
 
   // Migrate anonymous stats to user-scoped stats when user logs in
-  const migrateAnonymousStats = useCallback(() => {
+  // Also fetch server stats and merge to ensure header is in sync
+  const migrateAnonymousStats = useCallback(async () => {
     const userId = getCachedUserId();
     if (!userId) return;
     
     const sessionId = getOrCreateSessionId();
-    if (isMigrationDone(userId, sessionId)) return;
-    
     const anonymousKey = getAnonymousStorageKey();
     const userKey = `muriukidb-stats:user:${userId}`;
     
     const anonymousStats = loadStats(anonymousKey);
     const userStats = loadStats(userKey);
     
-    // Only merge if anonymous has any progress
-    if (anonymousStats.xp > 0 || anonymousStats.queriesExecuted > 0) {
-      const merged = mergeStats(userStats, anonymousStats);
+    // Fetch server leaderboard stats to merge
+    let serverStats = defaultStats;
+    try {
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .select('xp, level, queries_executed, tables_created, rows_inserted, badges, current_streak, highest_streak')
+        .eq('user_id', userId)
+        .single();
+      
+      if (!error && data) {
+        serverStats = {
+          ...defaultStats,
+          xp: data.xp || 0,
+          queriesExecuted: data.queries_executed || 0,
+          tablesCreated: data.tables_created || 0,
+          rowsInserted: data.rows_inserted || 0,
+          badges: data.badges || [],
+          streak: data.current_streak || 0,
+          highestStreak: data.highest_streak || 0,
+        };
+      }
+    } catch (err) {
+      console.error('Error fetching server stats:', err);
+    }
+    
+    // Merge all three sources: server, anonymous local, user local
+    const merged = mergeStats(mergeStats(serverStats, userStats), anonymousStats);
+    
+    // Update state if merged has more progress
+    if (merged.xp > stats.xp || merged.queriesExecuted > stats.queriesExecuted) {
       setStats(merged);
       localStorage.setItem(userKey, JSON.stringify(merged));
     }
     
-    markMigrationDone(userId, sessionId);
-  }, []);
+    // Mark migration done for this session
+    if (!isMigrationDone(userId, sessionId)) {
+      markMigrationDone(userId, sessionId);
+    }
+  }, [stats.xp, stats.queriesExecuted]);
 
   const addXP = useCallback((amount: number, reason: string): number => {
     if (amount <= 0) return 0;
