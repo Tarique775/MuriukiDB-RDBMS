@@ -458,6 +458,12 @@ The `vercel.json` file handles client-side routing:
 - Portfolio: [samuel-muriuki.vercel.app](https://samuel-muriuki.vercel.app/)
 - GitHub: [github.com/Samuel-Muriuki](https://github.com/Samuel-Muriuki)
 
+## ☕ Support
+
+If you find this project helpful, consider supporting me!
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/elsamm)
+
 Built in collaboration with [Lovable](https://lovable.dev/invite/A5KC0U8) AI.
 
 ---

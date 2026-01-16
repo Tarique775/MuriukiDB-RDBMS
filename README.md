@@ -20,7 +20,7 @@ A custom Relational Database Management System built for the **Pesapal Junior De
 
 ## Video Demonstration
 
-[Watch the full demo video](screenshots/demo.mp4)
+![Demo](screenshots/demo.gif)
 
 ## ✨ Features
 
@@ -83,6 +83,12 @@ See [DOCUMENTATION.md](DOCUMENTATION.md) for detailed architecture, SQL commands
 **Samuel Muriuki**
 - Portfolio: [samuel-muriuki.vercel.app](https://samuel-muriuki.vercel.app/)
 - GitHub: [github.com/Samuel-Muriuki](https://github.com/Samuel-Muriuki)
+
+## ☕ Support
+
+If you find this project helpful, consider supporting me!
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/elsamm)
 
 ---
 
