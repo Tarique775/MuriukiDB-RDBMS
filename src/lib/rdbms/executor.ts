@@ -31,10 +31,11 @@ const indexCache: Map<string, BTree<unknown>> = new Map();
 const SESSION_KEY = 'muriukidb-session-id';
 
 export function getOrCreateSessionId(): string {
-  let sessionId = sessionStorage.getItem(SESSION_KEY);
+  // Use localStorage for persistence across browser sessions
+  let sessionId = localStorage.getItem(SESSION_KEY);
   if (!sessionId) {
     sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2);
-    sessionStorage.setItem(SESSION_KEY, sessionId);
+    localStorage.setItem(SESSION_KEY, sessionId);
   }
   return sessionId;
 }

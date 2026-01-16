@@ -67,10 +67,10 @@ export default function Achievements() {
                       <p className="text-xs text-foreground/80 font-semibold mt-1">RANK {currentRank.level}</p>
                     </div>
                   </div>
-                  <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full border text-xs font-bold shadow-lg ${
+                  <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 rounded-full border text-xs font-bold shadow-lg whitespace-nowrap ${
                     currentRank.id >= 23 
-                      ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300' 
-                      : 'bg-primary/20 border-primary/50 text-primary'
+                      ? 'bg-background border-yellow-500/50 text-yellow-300' 
+                      : 'bg-background border-primary/50 text-primary'
                   }`}>
                     {currentRank.name}
                   </div>

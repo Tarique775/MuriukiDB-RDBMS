@@ -391,7 +391,7 @@
   }
 
   .animate-query-blink {
-    animation: query-blink 0.5s ease-in-out 3;
+    animation: query-blink 0.8s ease-in-out 5;
     border-color: hsl(var(--primary)) !important;
   }
 }

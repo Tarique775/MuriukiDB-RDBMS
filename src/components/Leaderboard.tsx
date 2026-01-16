@@ -42,12 +42,8 @@ export function Leaderboard() {
     setLoading(true);
     setFetchError(null);
     try {
-      // Use the public view that hides sensitive data (user_id, browser_fingerprint)
-      const { data, error } = await supabase
-        .from('leaderboard_public')
-        .select('id, nickname, xp, level, queries_executed, badges')
-        .order('xp', { ascending: false })
-        .limit(100);
+      // Use RPC function to bypass RLS and get public leaderboard data
+      const { data, error } = await supabase.rpc('get_leaderboard_public');
       
       if (error) {
         console.error('Leaderboard fetch error:', error);
@@ -59,7 +55,7 @@ export function Leaderboard() {
         setFetchError('Unable to load leaderboard. Try refreshing.');
         setEntries([]);
       } else if (data) {
-        setEntries(data);
+        setEntries(data as LeaderboardEntry[]);
         setFetchError(null);
         
         // Find my rank by fetching separately for current user (using main table with auth)
@@ -71,7 +67,7 @@ export function Leaderboard() {
             .single();
             
           if (myData) {
-            const myEntry = data.findIndex(e => e.id === myData.id);
+            const myEntry = (data as LeaderboardEntry[]).findIndex(e => e.id === myData.id);
             if (myEntry !== -1) {
               setMyRank(myEntry + 1);
               setIsRegistered(true);

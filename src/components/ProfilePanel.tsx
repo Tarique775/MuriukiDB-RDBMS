@@ -76,6 +76,35 @@ export function ProfilePanel() {
           const rank = rankData.findIndex(e => e.id === profileData.id) + 1;
           setGlobalRank(rank > 0 ? rank : null);
         }
+      } else {
+        // No profile exists - create one
+        const nickname = user.user_metadata?.nickname || user.email?.split('@')[0] || 'Player';
+        const { error: insertError } = await supabase.from('leaderboard').insert({
+          nickname,
+          user_id: user.id,
+          xp: 0,
+          level: 1,
+          queries_executed: 0,
+          tables_created: 0,
+          rows_inserted: 0,
+          badges: [],
+          current_streak: 0,
+          highest_streak: 0,
+        });
+        
+        if (!insertError) {
+          // Re-fetch the newly created profile
+          const { data: newProfile } = await supabase
+            .from('leaderboard')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (newProfile) {
+            setProfile(newProfile);
+            setNewNickname(newProfile.nickname);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -238,7 +267,9 @@ export function ProfilePanel() {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <span className="font-mono font-bold text-lg">{profile?.nickname || 'Unknown'}</span>
+                <span className="font-mono font-bold text-lg">
+                  {profile?.nickname || user?.user_metadata?.nickname || user?.email?.split('@')[0] || 'Unknown'}
+                </span>
                 <Button 
                   size="icon" 
                   variant="ghost"

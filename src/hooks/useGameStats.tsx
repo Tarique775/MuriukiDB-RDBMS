@@ -252,6 +252,7 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
 
   // Migrate anonymous stats to user-scoped stats when user logs in
   // Also fetch server stats and merge to ensure header is in sync
+  // AND claim any anonymous tables/data for the authenticated user
   const migrateAnonymousStats = useCallback(async () => {
     const userId = getCachedUserId();
     if (!userId) return;
@@ -262,6 +263,14 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
     
     const anonymousStats = loadStats(anonymousKey);
     const userStats = loadStats(userKey);
+    
+    // Claim RDBMS tables from anonymous session
+    try {
+      await supabase.rpc('claim_session_data', { p_session_id: sessionId });
+      console.log('[GameStats] Claimed session tables for user');
+    } catch (err) {
+      console.warn('[GameStats] Could not claim session data:', err);
+    }
     
     // Fetch server leaderboard stats to merge
     let serverStats = defaultStats;

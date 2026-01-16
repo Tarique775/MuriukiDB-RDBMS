@@ -271,13 +271,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: 'Email is required' };
       }
 
-      // Use signInWithOtp with shouldCreateUser: false to send a 6-digit code
-      // This allows OTP verification flow instead of magic link
-      const { error } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: {
-          shouldCreateUser: false,
-        },
+      // Use resetPasswordForEmail which sends a magic link for password reset
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: `${window.location.origin}/?recovery=true`,
       });
 
       if (error) {

@@ -278,12 +278,29 @@ export type Database = {
       }
     }
     Functions: {
+      claim_session_data: { Args: { p_session_id: string }; Returns: undefined }
       cleanup_inactive_users: { Args: never; Returns: undefined }
       compute_user_streak: {
         Args: { p_user_id: string }
         Returns: {
           current_streak: number
           highest_streak: number
+        }[]
+      }
+      get_leaderboard_public: {
+        Args: never
+        Returns: {
+          badges: string[]
+          created_at: string
+          current_streak: number
+          highest_streak: number
+          id: string
+          level: number
+          nickname: string
+          queries_executed: number
+          rows_inserted: number
+          tables_created: number
+          xp: number
         }[]
       }
       record_query_activity: { Args: { p_user_id: string }; Returns: undefined }

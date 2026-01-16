@@ -112,7 +112,7 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
         addOutput('output', '║         PASSWORD RECOVERY              ║');
         addOutput('output', '╚════════════════════════════════════════╝');
         addOutput('output', '');
-        addOutput('output', 'Enter your EMAIL to receive a recovery code:');
+        addOutput('output', 'Enter your EMAIL to receive a password reset link:');
         setStep('recovery_email');
         return;
       }
@@ -344,7 +344,7 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
       return;
     }
 
-    // Handle recovery flow
+    // Handle recovery flow - sends a magic link instead of OTP
     if (step === 'recovery_email') {
       const email = rawValue.trim();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -356,7 +356,7 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
       addOutput('input', `> ${email}`);
       setFormData(prev => ({ ...prev, email }));
       setIsProcessing(true);
-      addOutput('output', 'Sending recovery code...');
+      addOutput('output', 'Sending password reset link...');
       
       const { error } = await resetPassword(email);
       
@@ -368,44 +368,13 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
       }
       
       addOutput('success', '');
-      addOutput('success', '✓ Recovery code sent!');
+      addOutput('success', '✓ Password reset link sent!');
       addOutput('output', '');
-      addOutput('output', 'Check your inbox for the 6-digit code.');
-      addOutput('output', '(Code expires in 1 hour)');
+      addOutput('output', 'Check your email and click the link to reset your password.');
+      addOutput('output', 'You will be redirected back here to set a new password.');
       addOutput('output', '');
-      addOutput('output', 'Enter the code below:');
-      setStep('recovery_otp');
-      setIsProcessing(false);
-      return;
-    }
-
-    // Handle OTP verification for recovery
-    if (step === 'recovery_otp') {
-      const code = rawValue.trim();
-      if (code.length !== 6 || !/^\d+$/.test(code)) {
-        addOutput('input', `> ${code}`);
-        addOutput('error', 'Please enter a valid 6-digit code');
-        return;
-      }
-      addOutput('input', `> ${code}`);
-      setIsProcessing(true);
-      addOutput('output', 'Verifying code...');
-      
-      const { error } = await verifyOtp(formData.email, code, 'recovery');
-      
-      if (error) {
-        addOutput('error', `Error: ${error}`);
-        addOutput('output', 'Please try entering the code again:');
-        setIsProcessing(false);
-        return;
-      }
-      
-      addOutput('success', '');
-      addOutput('success', '✓ Code verified!');
-      addOutput('output', '');
-      addOutput('output', 'Enter your new PASSWORD:');
-      addOutput('output', '(min 6 characters, Shift+T to toggle visibility)');
-      setStep('recovery_new_password');
+      addOutput('output', 'Type EXIT to close this window.');
+      setStep('idle');
       setIsProcessing(false);
       return;
     }
