@@ -8,6 +8,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isRecoveryMode: boolean;
+  clearRecoveryMode: () => void;
   signUp: (
     email: string,
     password: string,
@@ -33,11 +35,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   
   // Track if we just completed an auth action to prevent race conditions
   // Only skip duplicate SIGNED_IN events, never skip critical events
   const justCompletedAuthRef = useRef(false);
   const pendingAuthActionRef = useRef<string | null>(null);
+  
+  const clearRecoveryMode = useCallback(() => {
+    setIsRecoveryMode(false);
+  }, []);
 
   useEffect(() => {
     // Initialize the global session cache
@@ -61,6 +68,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Unexpected signout - might be rate limit
             console.warn('[AuthProvider] Unexpected SIGNED_OUT event');
           }
+          return;
+        }
+        
+        // Detect PASSWORD_RECOVERY event - user clicked recovery link in email
+        if (event === 'PASSWORD_RECOVERY') {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[AuthProvider] PASSWORD_RECOVERY detected, enabling recovery mode');
+          }
+          setIsRecoveryMode(true);
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          setLoading(false);
           return;
         }
 
@@ -551,6 +570,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       session,
       loading,
+      isRecoveryMode,
+      clearRecoveryMode,
       signUp,
       signIn,
       signOut,
@@ -574,6 +595,8 @@ export const useAuth = () => {
       user: null,
       session: null,
       loading: true,
+      isRecoveryMode: false,
+      clearRecoveryMode: () => {},
       signUp: async () => ({ error: 'Auth not initialized' }),
       signIn: async () => ({ error: 'Auth not initialized' }),
       signOut: async () => {},

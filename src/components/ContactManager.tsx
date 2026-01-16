@@ -812,7 +812,7 @@ export const ContactManager = () => {
         <Card className="glass-card border-primary/30 overflow-hidden">
           <div 
             ref={tableRef}
-            className="overflow-x-auto focus:outline-none" 
+            className="overflow-x-auto scrollbar-thin focus:outline-none" 
             tabIndex={0}
             onKeyDown={handleKeyDown}
             onFocus={() => focusedRowIndex === null && paginatedContacts.length > 0 && setFocusedRowIndex(0)}

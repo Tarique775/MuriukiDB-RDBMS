@@ -21,16 +21,8 @@ import {
 const SESSION_KEY = 'muriukidb-session-id';
 
 function getSessionId(): string | null {
-  // Try sessionStorage first, then localStorage for persistence
-  let sessionId = sessionStorage.getItem(SESSION_KEY);
-  if (!sessionId) {
-    sessionId = localStorage.getItem(SESSION_KEY);
-    if (sessionId) {
-      // Restore to sessionStorage
-      sessionStorage.setItem(SESSION_KEY, sessionId);
-    }
-  }
-  return sessionId;
+  // Use localStorage only to match executor.ts
+  return localStorage.getItem(SESSION_KEY);
 }
 
 interface QueryHistoryItem {
