@@ -78,6 +78,40 @@ See [DOCUMENTATION.md](DOCUMENTATION.md) for detailed architecture, SQL commands
 - **Audio**: Web Audio API for synthesized sound effects
 - **Deployment**: Vercel
 
+## 🔧 Custom vs Supabase Components
+
+### Fully Custom (Written from Scratch)
+
+| Component | File | Description |
+|-----------|------|-------------|
+| SQL Lexer | `src/lib/rdbms/lexer.ts` | Tokenizes SQL with XSS protection |
+| SQL Parser | `src/lib/rdbms/parser.ts` | Builds AST from tokens |
+| Query Executor | `src/lib/rdbms/executor.ts` | Executes queries with validation |
+| B-Tree Index | `src/lib/rdbms/btree.ts` | In-memory index structure |
+| REPL Interface | `src/components/REPL.tsx` | Terminal-style SQL interface |
+| Statement Splitter | `src/lib/rdbms/utils.ts` | Multi-statement SQL parsing |
+
+### Backed by Supabase
+
+| Feature | Purpose |
+|---------|---------|
+| Data Persistence | Tables stored in `rdbms_tables`, rows in `rdbms_rows` |
+| Authentication | Supabase Auth with email/password |
+| Row-Level Security | RLS policies isolate user data |
+| Real-time Sync | Live updates via Supabase Realtime |
+| Rate Limiting | Edge Functions enforce query limits |
+| Cleanup | Edge Function removes stale anonymous data |
+
+## ⚠️ Known Limitations
+
+See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for a complete list including:
+
+- **Indexing**: In-memory B-Tree only (not persisted across sessions)
+- **Transactions**: No ACID support (no BEGIN/COMMIT/ROLLBACK)
+- **Concurrency**: No locking (last write wins)
+- **Subqueries**: Nested SELECT not supported
+- **Data Types**: INTEGER, TEXT, REAL, BOOLEAN, DATE only
+
 ## 👨‍💻 Author
 
 **Samuel Muriuki**

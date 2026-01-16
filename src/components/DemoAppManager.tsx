@@ -145,6 +145,9 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
     setSelectedIds(new Set());
     setSearchTerm('');
     setCurrentPage(1);
+    // Reset batch edit state when switching tables
+    setBatchEditMode(false);
+    setBatchFormData({});
     
     const init = async () => {
       await initializeTable(tableConfig);

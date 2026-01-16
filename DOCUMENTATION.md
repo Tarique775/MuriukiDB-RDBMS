@@ -387,6 +387,63 @@ Visual feedback (non-enforcing) showing password strength during signup and rese
 
 ---
 
+## ⚠️ Known Limitations
+
+See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for a complete list of current limitations and roadmap:
+
+- **SQL Parser**: Single-statement execution internally (multi-statement at REPL level), no nested subqueries
+- **Indexing**: In-memory B-Tree only (not persisted across sessions)
+- **Transactions**: No ACID support (no BEGIN/COMMIT/ROLLBACK)
+- **Concurrency**: No locking (last write wins)
+- **Data Types**: INTEGER, TEXT, REAL, BOOLEAN, DATE only
+
+---
+
+## 🧪 Smoke Test Queries
+
+Use these queries to verify the RDBMS functionality. Also available in [smoke_test.sql](smoke_test.sql).
+
+```sql
+-- 1) Create table with constraints
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTO_INCREMENT,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  age INTEGER,
+  created_at DATE
+);
+
+-- 2) Insert test data
+INSERT INTO users (name, email, age, created_at) VALUES
+ ('Alice', 'alice@example.com', 30, '2025-01-01'),
+ ('Bob', 'bob@example.com', 25, '2025-01-03');
+
+-- 3) Verify rows
+SELECT * FROM users ORDER BY id;
+
+-- 4) Test unique constraint (should fail)
+INSERT INTO users (name, email) VALUES ('Eve', 'alice@example.com');
+
+-- 5) Create and use index
+CREATE INDEX idx_users_email ON users (email);
+SELECT * FROM users WHERE email = 'bob@example.com';
+
+-- 6) Test JOIN
+CREATE TABLE IF NOT EXISTS orders (
+  id INTEGER PRIMARY KEY AUTO_INCREMENT,
+  user_id INTEGER,
+  product TEXT
+);
+INSERT INTO orders (user_id, product) VALUES (1, 'Tea'), (2, 'Coffee');
+SELECT u.name, o.product FROM users u INNER JOIN orders o ON u.id = o.user_id;
+
+-- 7) Update & Delete
+UPDATE users SET age = 26 WHERE name = 'Bob';
+DELETE FROM users WHERE name = 'Alice';
+```
+
+---
+
 ## ⚠️ Design Decisions & Trade-offs
 
 ### Why Browser-Based Storage?

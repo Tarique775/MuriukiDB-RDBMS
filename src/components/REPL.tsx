@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { QueryExecutor, highlightSQL, QueryResult } from '@/lib/rdbms';
+import { splitSqlStatements } from '@/lib/rdbms/utils';
 import { useGameStats } from '@/hooks/useGameStats';
 import { useFeedbackOptional } from '@/contexts/FeedbackContext';
 import { toast } from 'sonner';
@@ -220,23 +221,42 @@ export function REPL({ initialQuery, onQueryChange, onQueryError }: REPLProps) {
   }, [addXP, incrementQueries, incrementTablesCreated, incrementRowsInserted, onQueryChange, onQueryError]);
 
   const executeQuery = useCallback(async () => {
-    const query = input.trim();
-    if (!query || isExecuting) return;
+    const rawInput = input.trim();
+    if (!rawInput || isExecuting) return;
 
-    // Check if query is destructive
-    const destructiveCheck = checkDestructiveQuery(query);
-    if (destructiveCheck.needsWarning) {
-      setPendingQuery(query);
-      setDeleteWarningInfo({
-        title: destructiveCheck.title,
-        description: destructiveCheck.description,
-        warning: destructiveCheck.warning,
-      });
-      setShowDeleteWarning(true);
+    // Split into individual statements while respecting quotes
+    const statements = splitSqlStatements(rawInput);
+    
+    if (statements.length === 0) return;
+
+    // For single statements, use existing logic with destructive check
+    if (statements.length === 1) {
+      const query = statements[0];
+      const destructiveCheck = checkDestructiveQuery(query);
+      if (destructiveCheck.needsWarning) {
+        setPendingQuery(query);
+        setDeleteWarningInfo({
+          title: destructiveCheck.title,
+          description: destructiveCheck.description,
+          warning: destructiveCheck.warning,
+        });
+        setShowDeleteWarning(true);
+        return;
+      }
+      await executeQueryInternal(query);
       return;
     }
 
-    await executeQueryInternal(query);
+    // For multiple statements, execute sequentially
+    // Skip destructive statements in batch mode with a warning
+    for (const stmt of statements) {
+      const destructiveCheck = checkDestructiveQuery(stmt);
+      if (destructiveCheck.needsWarning) {
+        toast.warning(`Skipped destructive query in batch: ${stmt.slice(0, 40)}...`, { duration: 4000 });
+        continue;
+      }
+      await executeQueryInternal(stmt);
+    }
   }, [input, isExecuting, checkDestructiveQuery, executeQueryInternal]);
 
   const handleConfirmDestructiveQuery = useCallback(async () => {
