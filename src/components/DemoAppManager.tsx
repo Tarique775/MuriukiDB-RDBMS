@@ -73,12 +73,11 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
     [currentTableId]
   );
 
-  // Real-time updates
-  const { isConnected: realtimeConnected, lastUpdate } = useRealtimeTable({
-    tableName: tableConfig.tableName,
-    onUpdate: () => fetchRecords(),
-    enabled: true,
-  });
+  // Get current table's ID from database for realtime filtering
+  const [currentDbTableId, setCurrentDbTableId] = useState<string | null>(null);
+
+  // Ref for stable callback (will be set after fetchRecords is defined)
+  const fetchRecordsRef = useRef<() => void>(() => {});
 
   // Initialize form data with empty strings for all columns
   const getEmptyFormData = useCallback((config: DemoTableConfig) => {
@@ -125,23 +124,43 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
     }
   }, [executor, tableConfig.tableName]);
 
+  // Update ref after fetchRecords is defined
+  useEffect(() => {
+    fetchRecordsRef.current = fetchRecords;
+  }, [fetchRecords]);
+
+  // Real-time updates - use stable callback via ref
+  const { isConnected: realtimeConnected, lastUpdate } = useRealtimeTable({
+    tableName: tableConfig.tableName,
+    tableId: currentDbTableId,
+    onUpdate: useCallback(() => fetchRecordsRef.current(), []),
+    enabled: true,
+  });
+
   // Initialize and fetch on table change
   useEffect(() => {
+    // Immediately clear state to prevent showing previous table's data
+    setAllRecords([]);
+    setLoading(true);
+    setFormData(getEmptyFormData(tableConfig));
+    setFormErrors({});
+    setEditingId(null);
+    setSelectedIds(new Set());
+    setSearchTerm('');
+    setCurrentPage(1);
+    
     const init = async () => {
       await initializeTable(tableConfig);
       await fetchRecords();
-      setFormData(getEmptyFormData(tableConfig));
-      setFormErrors({});
-      setEditingId(null);
-      setSelectedIds(new Set());
-      setSearchTerm('');
-      setCurrentPage(1);
     };
     init();
   }, [tableConfig, initializeTable, fetchRecords, getEmptyFormData]);
 
   // Handle table switch
   const handleTableChange = (tableId: string) => {
+    // Immediately clear to prevent flash of old data
+    setAllRecords([]);
+    setLoading(true);
     setCurrentTableId(tableId);
     onTableChange?.(tableId);
   };
@@ -184,36 +203,67 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
     return !hasErrors;
   }, [tableConfig.columns, formData]);
 
-  // Load sample data
+  // Load sample data using batch INSERT for efficiency
   const loadSampleData = async () => {
+    // Capture current config to prevent issues if user switches tables
+    const config = tableConfig;
     setLoadingSample(true);
-    let successCount = 0;
     
-    for (let i = 0; i < 8; i++) {
-      const data = tableConfig.sampleDataGenerator();
-      try {
-        const columns = Object.keys(data).join(', ');
-        const values = Object.values(data).map(v => 
+    try {
+      // Generate all sample rows first
+      const sampleRows: Record<string, any>[] = [];
+      for (let i = 0; i < 5; i++) {
+        sampleRows.push(config.sampleDataGenerator());
+      }
+      
+      if (sampleRows.length === 0) {
+        setLoadingSample(false);
+        return;
+      }
+      
+      // Build a single batch INSERT statement
+      const columns = Object.keys(sampleRows[0]).join(', ');
+      const valuesClauses = sampleRows.map(row => {
+        const values = Object.values(row).map(v => 
           typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : v
         ).join(', ');
-        
-        const result = await executor.execute(
-          `INSERT INTO ${tableConfig.tableName} (${columns}) VALUES (${values})`
-        );
-        if (result.success) {
-          successCount++;
-          if (successCount >= 5) break;
+        return `(${values})`;
+      }).join(', ');
+      
+      const batchSQL = `INSERT INTO ${config.tableName} (${columns}) VALUES ${valuesClauses}`;
+      const result = await executor.execute(batchSQL);
+      
+      if (result.success) {
+        const count = sampleRows.length;
+        toast.success(`Added ${count} sample ${config.name.toLowerCase()}! +${count * 10} XP`);
+        addXP(count * 10, 'sample_data');
+        incrementRowsInserted(count);
+      } else {
+        // Fallback: try inserting one by one if batch fails
+        let successCount = 0;
+        for (const row of sampleRows) {
+          const cols = Object.keys(row).join(', ');
+          const vals = Object.values(row).map(v => 
+            typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : v
+          ).join(', ');
+          
+          const singleResult = await executor.execute(
+            `INSERT INTO ${config.tableName} (${cols}) VALUES (${vals})`
+          );
+          if (singleResult.success) successCount++;
         }
-      } catch (error) {
-        // Skip duplicates
+        
+        if (successCount > 0) {
+          toast.success(`Added ${successCount} sample ${config.name.toLowerCase()}! +${successCount * 10} XP`);
+          addXP(successCount * 10, 'sample_data');
+          incrementRowsInserted(successCount);
+        }
       }
+    } catch (error) {
+      console.error('Load sample error:', error);
+      toast.error('Failed to load sample data');
     }
     
-    if (successCount > 0) {
-      toast.success(`Added ${successCount} sample ${tableConfig.name.toLowerCase()}! +${successCount * 10} XP`);
-      addXP(successCount * 10, 'sample_data');
-      incrementRowsInserted(successCount);
-    }
     await fetchRecords();
     setLoadingSample(false);
   };

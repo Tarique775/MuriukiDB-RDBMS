@@ -188,11 +188,16 @@ const escapeHtml = (str: string): string =>
      .replace(/"/g, '&quot;')
      .replace(/'/g, '&#039;');
 
-// Syntax highlighter for SQL
+// Syntax highlighter for SQL with improved operator/punctuation coloring
 export function highlightSQL(sql: string): string {
   const lexer = new Lexer(sql);
   let highlighted = '';
   let lastPosition = 0;
+  
+  // Track context for table name highlighting
+  const tableContextKeywords = ['FROM', 'INTO', 'TABLE', 'JOIN', 'UPDATE'];
+  let expectTable = false;
+  let lastKeyword = '';
 
   try {
     const tokens = lexer.tokenize();
@@ -216,15 +221,31 @@ export function highlightSQL(sql: string): string {
       switch (token.type) {
         case 'KEYWORD':
           highlighted += `<span class="sql-keyword">${escapeHtml(originalText)}</span>`;
+          lastKeyword = token.value.toUpperCase();
+          expectTable = tableContextKeywords.includes(lastKeyword);
           break;
         case 'STRING':
           highlighted += `<span class="sql-string">'${escapeHtml(token.value)}'</span>`;
+          expectTable = false;
           break;
         case 'NUMBER':
           highlighted += `<span class="sql-number">${escapeHtml(originalText)}</span>`;
+          expectTable = false;
           break;
         case 'IDENTIFIER':
-          highlighted += `<span class="sql-table">${escapeHtml(originalText)}</span>`;
+          if (expectTable) {
+            highlighted += `<span class="sql-table">${escapeHtml(originalText)}</span>`;
+            expectTable = false;
+          } else {
+            highlighted += `<span class="sql-identifier">${escapeHtml(originalText)}</span>`;
+          }
+          break;
+        case 'OPERATOR':
+          highlighted += `<span class="sql-operator">${escapeHtml(originalText)}</span>`;
+          expectTable = false;
+          break;
+        case 'PUNCTUATION':
+          highlighted += `<span class="sql-punctuation">${escapeHtml(originalText)}</span>`;
           break;
         default:
           highlighted += escapeHtml(originalText);

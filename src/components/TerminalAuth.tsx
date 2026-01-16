@@ -89,9 +89,9 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
     if (step === 'idle') {
       if (cmd === 'SIGNUP' || cmd === 'REGISTER') {
         addOutput('input', `> ${command}`);
-        addOutput('output', '╔════════════════════════════════════════╗');
-        addOutput('output', '║         ACCOUNT REGISTRATION           ║');
-        addOutput('output', '╚════════════════════════════════════════╝');
+        addOutput('output', '╔══════════════════════════════════════════╗');
+        addOutput('output', '║         ACCOUNT REGISTRATION             ║');
+        addOutput('output', '╚══════════════════════════════════════════╝');
         addOutput('output', '');
         addOutput('output', 'Enter your desired NICKNAME:');
         addOutput('output', '(2-20 characters, spaces allowed between characters)');
@@ -101,9 +101,9 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
       
       if (cmd === 'LOGIN' || cmd === 'SIGNIN') {
         addOutput('input', `> ${command}`);
-        addOutput('output', '╔════════════════════════════════════════╗');
-        addOutput('output', '║            ACCOUNT LOGIN               ║');
-        addOutput('output', '╚════════════════════════════════════════╝');
+        addOutput('output', '╔══════════════════════════════════════════╗');
+        addOutput('output', '║            ACCOUNT LOGIN                 ║');
+        addOutput('output', '╚══════════════════════════════════════════╝');
         addOutput('output', '');
         addOutput('output', 'Enter your EMAIL:');
         setStep('login_email');
@@ -112,9 +112,9 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
       
       if (cmd === 'RECOVER' || cmd === 'RESET' || cmd === 'FORGOT') {
         addOutput('input', `> ${command}`);
-        addOutput('output', '╔════════════════════════════════════════╗');
-        addOutput('output', '║         PASSWORD RECOVERY              ║');
-        addOutput('output', '╚════════════════════════════════════════╝');
+        addOutput('output', '╔══════════════════════════════════════════╗');
+        addOutput('output', '║         PASSWORD RECOVERY                ║');
+        addOutput('output', '╚══════════════════════════════════════════╝');
         addOutput('output', '');
         addOutput('output', 'Enter your EMAIL to receive a 6-digit code:');
         setStep('recovery_email');
@@ -129,9 +129,9 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
           return;
         }
         addOutput('input', `> ${command}`);
-        addOutput('output', '╔════════════════════════════════════════╗');
-        addOutput('output', '║           EMAIL CHANGE                 ║');
-        addOutput('output', '╚════════════════════════════════════════╝');
+        addOutput('output', '╔══════════════════════════════════════════╗');
+        addOutput('output', '║           EMAIL CHANGE                   ║');
+        addOutput('output', '╚══════════════════════════════════════════╝');
         addOutput('output', '');
         addOutput('output', `Current email: ${user.email}`);
         addOutput('output', '');
@@ -210,10 +210,10 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
       addOutput('input', `> ${'*'.repeat(password.length)}`);
       setFormData(prev => ({ ...prev, password }));
       addOutput('output', '');
-      addOutput('output', '╔════════════════════════════════════════╗');
-      addOutput('output', `║ Nickname: ${formData.nickname.padEnd(28)}║`);
-      addOutput('output', `║ Email:    ${formData.email.padEnd(28)}║`);
-      addOutput('output', '╚════════════════════════════════════════╝');
+      addOutput('output', '╔══════════════════════════════════════════╗');
+      addOutput('output', `║ Nickname: ${formData.nickname.padEnd(29)}║`);
+      addOutput('output', `║ Email:    ${formData.email.padEnd(29)}║`);
+      addOutput('output', '╚══════════════════════════════════════════╝');
       addOutput('output', '');
       addOutput('output', 'Type CONFIRM to create account or CANCEL to abort:');
       setStep('signup_confirm');
@@ -528,11 +528,11 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
           <p className="text-xs ml-2">• EXIT    - Cancel</p>
         </div>
 
-        {/* Command history */}
+        {/* Command history - use whitespace-pre for proper box rendering */}
         {history.map((entry, i) => (
           <div 
             key={i} 
-            className={`font-mono text-sm ${
+            className={`font-mono text-sm whitespace-pre ${
               entry.type === 'error' ? 'text-destructive' :
               entry.type === 'success' ? 'text-[hsl(var(--terminal-bright-green))]' :
               entry.type === 'input' ? 'text-[hsl(var(--terminal-cyan))]' :

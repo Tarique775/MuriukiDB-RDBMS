@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Terminal, Users, Code, Trophy, Keyboard, ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { Terminal, Users, Code, Trophy, Keyboard, ChevronRight, ChevronLeft, X, Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 
 interface TutorialStep {
   title: string;
   description: string;
   icon: React.ReactNode;
   tip?: string;
+  hasThemePicker?: boolean;
 }
 
 const TUTORIAL_STEPS: TutorialStep[] = [
@@ -16,6 +18,12 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'A custom-built Relational Database Management System playground. Learn SQL, build tables, and track your progress!',
     icon: <Terminal className="w-8 h-8" />,
     tip: 'This is a fully functional SQL engine built from scratch.',
+  },
+  {
+    title: 'Choose Your Theme',
+    description: 'Select your preferred appearance. You can always change this later using the theme toggle in the header.',
+    icon: <Sun className="w-8 h-8" />,
+    hasThemePicker: true,
   },
   {
     title: 'SQL REPL',
@@ -58,6 +66,7 @@ interface WelcomeTutorialProps {
 export const WelcomeTutorial = ({ onComplete }: WelcomeTutorialProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     // Check if tutorial was already completed
@@ -141,6 +150,37 @@ export const WelcomeTutorial = ({ onComplete }: WelcomeTutorialProps) => {
           <p className="text-sm text-foreground text-center leading-relaxed">
             {step.description}
           </p>
+
+          {step.hasThemePicker && (
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setTheme('light')}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  theme === 'light' 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="w-16 h-12 rounded-lg bg-[hsl(60,10%,96%)] border border-[hsl(220,15%,80%)] flex items-center justify-center">
+                  <Sun className="w-6 h-6 text-[hsl(45,90%,40%)]" />
+                </div>
+                <span className="text-sm font-medium">Light</span>
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  theme === 'dark' 
+                    ? 'border-primary bg-primary/10' 
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="w-16 h-12 rounded-lg bg-[hsl(220,20%,8%)] border border-[hsl(142,30%,20%)] flex items-center justify-center">
+                  <Moon className="w-6 h-6 text-[hsl(142,70%,45%)]" />
+                </div>
+                <span className="text-sm font-medium">Dark</span>
+              </button>
+            </div>
+          )}
 
           {step.tip && (
             <div className="bg-secondary/30 rounded-lg p-3 border border-border/50">
