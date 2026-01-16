@@ -365,6 +365,86 @@ The authentication uses a unique terminal-style interface:
 
 ---
 
+## 🚀 Deployment
+
+### Vercel Deployment
+
+1. **Push to GitHub**
+   ```bash
+   git push origin main
+   ```
+
+2. **Import in Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Import Project"
+   - Select your GitHub repository
+
+3. **Configure Build Settings**
+   - Framework Preset: `Vite`
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+
+4. **Add Environment Variables**
+   In Project Settings → Environment Variables:
+   - `VITE_SUPABASE_URL` - Your Supabase project URL
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` - Your Supabase anon key
+
+5. **Deploy**
+   - Click "Deploy" and wait for build to complete
+   - Your app will be live at `your-project.vercel.app`
+
+### SPA Routing
+
+The `vercel.json` file handles client-side routing:
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+---
+
+## 🔐 Edge Functions
+
+### auth-send-otp
+
+Sends OTP verification codes via email using Resend.
+
+**Endpoint**: `POST /functions/v1/auth-send-otp`
+
+**Request Body**:
+```json
+{
+  "email": "user@example.com",
+  "purpose": "signup" | "recovery" | "email_change"
+}
+```
+
+**Features**:
+- Rate limited (1 code per 60 seconds)
+- 6-character alphanumeric codes
+- 15-minute expiration
+- Terminal-themed email templates
+
+### auth-verify-otp
+
+Verifies OTP codes submitted by users.
+
+**Endpoint**: `POST /functions/v1/auth-verify-otp`
+
+**Request Body**:
+```json
+{
+  "email": "user@example.com",
+  "code": "ABC123",
+  "purpose": "signup" | "recovery"
+}
+```
+
+---
+
 ## 👨‍💻 Author
 
 **Samuel Muriuki**

@@ -378,7 +378,7 @@ export function REPL({ initialQuery, onQueryChange, onQueryError }: REPLProps) {
       
       <div ref={outputRef} className="terminal-body flex-1 overflow-auto scanline">
         {/* Welcome message */}
-        <div className="mb-4 text-muted-foreground">
+        <div className="mb-4 text-muted-foreground" data-tour="repl-banner">
           <pre className="text-[hsl(var(--terminal-green))] text-xs leading-tight">{`
 ╔═══════════════════════════════════════════════════════════╗
 ║  ██████╗ ██████╗ ██████╗ ███╗   ███╗███████╗              ║
@@ -391,7 +391,7 @@ export function REPL({ initialQuery, onQueryChange, onQueryError }: REPLProps) {
           <p className="mt-2">Welcome to the Relational Database Management System</p>
           <p className="text-xs">Type SQL commands and press Enter to execute. Use ↑/↓ to navigate history.</p>
           <p className="text-xs mt-1 text-[hsl(var(--terminal-yellow))]">💡 Earn XP and unlock badges by executing queries!</p>
-          <div className="text-xs mt-2 text-muted-foreground/70 border-t border-border/30 pt-2">
+          <div className="text-xs mt-2 text-muted-foreground/70 border-t border-border/30 pt-2" data-tour="repl-shortcuts">
             <span className="text-[hsl(var(--terminal-cyan))]">Shortcuts:</span>{' '}
             <kbd className="px-1.5 py-0.5 rounded bg-secondary text-[10px]">Ctrl+Enter</kbd> Execute •{' '}
             <kbd className="px-1.5 py-0.5 rounded bg-secondary text-[10px]">Ctrl+L</kbd> Clear •{' '}
@@ -417,6 +417,7 @@ export function REPL({ initialQuery, onQueryChange, onQueryError }: REPLProps) {
           <div className="flex-1 relative">
             <textarea
               ref={inputRef}
+              data-tour="repl-input"
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);

@@ -206,8 +206,12 @@ function loadStats(key: string): GameStats {
 }
 
 // Merge two stats objects (take max for metrics, union for badges)
+// CRITICAL: Use pointEvents from the source with higher XP to prevent cooldown mismatch
 function mergeStats(a: GameStats, b: GameStats): GameStats {
   const allBadges = Array.from(new Set([...a.badges, ...b.badges]));
+  
+  // Determine which source has the higher XP - use that for pointEvents consistency
+  const xpWinner = a.xp >= b.xp ? a : b;
   
   return {
     queriesExecuted: Math.max(a.queriesExecuted, b.queriesExecuted),
@@ -221,7 +225,8 @@ function mergeStats(a: GameStats, b: GameStats): GameStats {
     lastQueryDate: a.lastQueryDate && b.lastQueryDate 
       ? (new Date(a.lastQueryDate) > new Date(b.lastQueryDate) ? a.lastQueryDate : b.lastQueryDate)
       : (a.lastQueryDate || b.lastQueryDate),
-    pointEvents: [...a.pointEvents, ...b.pointEvents].slice(-100), // Keep last 100 events
+    // Use pointEvents from XP winner only to prevent inflated cooldown calculations
+    pointEvents: xpWinner.pointEvents.slice(-100),
   };
 }
 

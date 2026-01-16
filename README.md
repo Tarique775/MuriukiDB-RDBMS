@@ -1,73 +1,71 @@
-# Welcome to your Lovable project
+# MuriukiDB - Custom RDBMS
 
-## Project info
+A custom Relational Database Management System built for the **Pesapal Junior Dev Challenge '26**.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Live Demo**: [https://rdbms.lovable.app](https://rdbms.lovable.app)
 
-## How can I edit this code?
+![SQL REPL Interface](screenshots/repl.png)
 
-There are several ways of editing your application.
+## ✨ Features
 
-**Use Lovable**
+- **Complete SQL Parser** - CREATE, INSERT, SELECT, UPDATE, DELETE with JOINs
+- **B-Tree Indexing** - Optimized query performance
+- **Terminal-Style REPL** - Real-time SQL execution with syntax highlighting
+- **Demo App** - Visual CRUD interface for 5 table types
+- **Gamification** - 23 military ranks, XP rewards, badges & global leaderboard
+- **Real-time Updates** - Live data synchronization
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🎮 Ranking System
 
-Changes made via Lovable will be committed automatically to this repo.
+Progress from **Private (0 XP)** to **Commander in Chief (1,000,000 XP)**!
 
-**Use your preferred IDE**
+![Achievements Page](screenshots/achievements.png)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Quick Start
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+git clone https://github.com/Samuel-Muriuki/MuriukiDB-RDBMS.git
+cd MuriukiDB-RDBMS
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🔧 Environment Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Copy `.env.example` to `.env`
+2. Configure your Supabase credentials:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - `VITE_SUPABASE_PROJECT_ID`
 
-**Use GitHub Codespaces**
+## 🚢 Deploying to Vercel
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Push your code to GitHub
+2. Import the repository in [Vercel](https://vercel.com)
+3. Set framework preset: **Vite**
+4. Build command: `npm run build`
+5. Output directory: `dist`
+6. Add environment variables in Project Settings
 
-## What technologies are used for this project?
+The included `vercel.json` handles SPA routing automatically.
 
-This project is built with:
+## 📚 Documentation
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+See [DOCUMENTATION.md](DOCUMENTATION.md) for detailed architecture, SQL commands, and security features.
 
-## How can I deploy this project?
+## 🛠️ Tech Stack
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS with terminal theme
+- **Backend**: Supabase (Edge Functions, RLS, Real-time)
+- **Deployment**: Vercel / Lovable
 
-## Can I connect a custom domain to my Lovable project?
+## 👨‍💻 Author
 
-Yes, you can!
+**Samuel Muriuki**
+- Portfolio: [samuel-muriuki.vercel.app](https://samuel-muriuki.vercel.app/)
+- GitHub: [github.com/Samuel-Muriuki](https://github.com/Samuel-Muriuki)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Built with [Lovable](https://lovable.dev) AI.

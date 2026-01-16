@@ -12,7 +12,10 @@ export const GameStats = () => {
       <div className="flex items-center gap-1 sm:gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded bg-primary/20 border border-primary/30 cursor-default">
+            <div 
+              data-tour="xp-display"
+              className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded bg-primary/20 border border-primary/30 cursor-default"
+            >
               <Trophy className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-primary" />
               <span className="text-[10px] sm:text-xs font-mono font-bold text-primary">LVL {currentRank.level}</span>
             </div>
