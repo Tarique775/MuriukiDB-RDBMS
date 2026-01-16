@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { REPL } from '@/components/REPL';
 import { DemoAppManager } from '@/components/DemoAppManager';
@@ -14,7 +14,9 @@ import { FadeContent } from '@/components/animations/FadeContent';
 import { DecryptedText } from '@/components/animations/DecryptedText';
 import { KeyboardShortcutsModal, useKeyboardShortcuts } from '@/components/KeyboardShortcutsModal';
 import { WelcomeTutorial } from '@/components/WelcomeTutorial';
-import { Terminal, Users, Github, History, Code, Trophy, Award, User, Keyboard } from 'lucide-react';
+import { InteractiveTour } from '@/components/tour/InteractiveTour';
+import { useTour } from '@/hooks/useTour';
+import { Terminal, Users, Github, History, Code, Trophy, Award, User, Keyboard, Play } from 'lucide-react';
 import { useUserFingerprint } from '@/hooks/useUserFingerprint';
 import { useAuth } from '@/hooks/useAuth';
 import { useGameStats } from '@/hooks/useGameStats';
@@ -28,9 +30,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Tab = 'repl' | 'contacts';
 type SidePanel = 'history' | 'samples' | 'leaderboard' | 'profile';
+
+// Tour steps definition
+const TOUR_STEPS = [
+  { id: 'welcome', target: '[data-tour="repl-banner"]', title: 'Welcome to the SQL REPL!', content: 'This is your command center for database operations. Type SQL commands here and watch them execute in real-time.', position: 'bottom' as const },
+  { id: 'repl-input', target: '[data-tour="repl-input"]', title: 'Write Your First Query', content: 'Type SQL commands in this input area. Try: CREATE TABLE demo (id INTEGER PRIMARY KEY, name TEXT)', position: 'top' as const },
+  { id: 'repl-shortcuts', target: '[data-tour="repl-shortcuts"]', title: 'Keyboard Shortcuts', content: 'Press Enter to execute, use ↑↓ arrows for history, and Tab for autocomplete. Ctrl+L clears the screen.', position: 'top' as const },
+  { id: 'demo-tab', target: '[data-tour="demo-tab"]', title: 'Demo App Tab', content: 'Click here to switch to the visual Demo App - a GUI for managing data without writing SQL.', position: 'bottom' as const },
+  { id: 'table-selector', target: '[data-tour="table-selector"]', title: 'Choose a Table', content: 'Switch between different table types: Contacts, Users, Products, Orders, and Employees.', position: 'bottom' as const },
+  { id: 'load-sample', target: '[data-tour="load-sample"]', title: 'Load Sample Data', content: 'Click this button to populate the table with sample records. Great for testing queries!', position: 'bottom' as const },
+  { id: 'samples-btn', target: '[data-tour="samples-btn"]', title: 'Sample Queries', content: 'Access pre-built SQL queries organized by category. Click any query to load it into the REPL instantly.', position: 'bottom' as const },
+  { id: 'xp-display', target: '[data-tour="xp-display"]', title: 'Earn XP & Level Up!', content: 'Every query earns you XP! Create tables (+50), insert data (+10), run queries (+5).', position: 'bottom' as const },
+  { id: 'achievements', target: '[data-tour="achievements-link"]', title: 'Achievements & Badges', content: 'Check your progress, unlock badges, and climb the ranks from Private to Commander in Chief!', position: 'bottom' as const },
+];
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<Tab>('repl');
@@ -49,6 +65,43 @@ const Index = () => {
   const { user } = useAuth();
   const { migrateAnonymousStats } = useGameStats();
   const { isOpen: shortcutsOpen, setIsOpen: setShortcutsOpen } = useKeyboardShortcuts();
+  
+  // Interactive tour
+  const tour = useTour({
+    steps: TOUR_STEPS,
+    onComplete: () => {
+      toast.success('🎉 Tour complete! You\'re ready to master SQL!', { duration: 4000 });
+    },
+  });
+
+  // Handle tour step-based tab switching
+  useEffect(() => {
+    if (!tour.isActive || !tour.currentStep) return;
+    const stepId = tour.currentStep.id;
+    if (stepId === 'table-selector' || stepId === 'load-sample') {
+      setActiveTab('contacts');
+    } else if (stepId === 'welcome' || stepId === 'repl-input' || stepId === 'repl-shortcuts' || stepId === 'demo-tab') {
+      setActiveTab('repl');
+    }
+  }, [tour.isActive, tour.currentStep]);
+
+  // Keyboard navigation for tour
+  useEffect(() => {
+    if (!tour.isActive) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') tour.skip();
+      else if (e.key === 'ArrowRight') tour.next();
+      else if (e.key === 'ArrowLeft') tour.prev();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [tour.isActive, tour.next, tour.prev, tour.skip]);
+
+  const handleTutorialComplete = useCallback(() => {
+    setShowTutorial(false);
+    // Optionally start interactive tour after tutorial
+    // tour.start();
+  }, []);
 
   // Global auth sync: claim session data + migrate stats when user logs in
   useEffect(() => {

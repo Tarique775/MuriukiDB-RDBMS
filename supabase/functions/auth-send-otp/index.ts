@@ -170,13 +170,24 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const emailResponse = await resend.emails.send({
-      from: "MuriukiDB <noreply@muriukidb.app>",
+      from: "MuriukiDB <onboarding@resend.dev>",
       to: [email],
       subject,
       html: htmlContent,
     });
 
-    console.log("Email sent:", emailResponse);
+    // Check for Resend errors and fail properly
+    if (emailResponse.error) {
+      console.error("Resend API error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to send verification email. Please try again later.",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Email sent successfully:", { id: emailResponse.data?.id, email: email.substring(0, 3) + '***' });
 
     // Cleanup old expired OTPs (fire and forget)
     try {
