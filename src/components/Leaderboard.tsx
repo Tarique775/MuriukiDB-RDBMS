@@ -45,10 +45,8 @@ export function Leaderboard() {
       const { data, error } = await supabase.rpc('get_leaderboard_public');
       
       if (error) {
-        console.error('Leaderboard fetch error:', error);
         // Retry on transient errors (406, network issues)
         if (retryCount < 3 && (error.code === '406' || error.message?.includes('network') || error.code === 'PGRST301')) {
-          console.log(`[Leaderboard] Retrying fetch (attempt ${retryCount + 1})...`);
           setTimeout(() => fetchLeaderboard(retryCount + 1), 1000 * (retryCount + 1));
           return;
         }
@@ -62,22 +60,30 @@ export function Leaderboard() {
         if (user) {
           const { data: myData } = await supabase
             .from('leaderboard')
-            .select('id, nickname')
+            .select('id, nickname, xp')
             .eq('user_id', user.id)
             .single();
             
           if (myData) {
-            const myEntry = (data as LeaderboardEntry[]).findIndex(e => e.id === myData.id);
-            if (myEntry !== -1) {
-              setMyRank(myEntry + 1);
-              setIsRegistered(true);
-              setNickname(myData.nickname);
+            // Use RPC for accurate rank (works even if not in top 100)
+            const { data: rankData } = await supabase.rpc('get_global_rank_for_xp', { 
+              p_xp: myData.xp || 0 
+            });
+            if (rankData) {
+              setMyRank(rankData);
+            } else {
+              // Fallback to list position if RPC fails
+              const myEntry = (data as LeaderboardEntry[]).findIndex(e => e.id === myData.id);
+              if (myEntry !== -1) {
+                setMyRank(myEntry + 1);
+              }
             }
+            setIsRegistered(true);
+            setNickname(myData.nickname);
           }
         }
       }
-    } catch (error) {
-      console.error('Error fetching leaderboard:', error);
+    } catch {
       if (retryCount < 3) {
         setTimeout(() => fetchLeaderboard(retryCount + 1), 1000 * (retryCount + 1));
         return;
@@ -152,7 +158,6 @@ export function Leaderboard() {
 
     // Validate stats before syncing to prevent tampering
     if (!validateStats(stats)) {
-      console.warn('Stats validation failed - possible tampering detected');
       return;
     }
 
@@ -162,7 +167,6 @@ export function Leaderboard() {
       toast.success('Stats synced to leaderboard!');
       await fetchLeaderboard();
     } catch (error: any) {
-      console.error('Error syncing stats:', error);
       if (error.message?.includes('401') || error.message?.includes('403')) {
         toast.error('Session expired. Please login again.');
       } else {

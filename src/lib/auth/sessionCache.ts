@@ -32,10 +32,6 @@ export function initSessionCache(): void {
   // Subscribe to auth state changes
   supabase.auth.onAuthStateChange((event, session) => {
     updateCache(session);
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[SessionCache] Auth event:', event, session?.user?.id ? 'has user' : 'no user');
-    }
   });
 
   // Initial session fetch

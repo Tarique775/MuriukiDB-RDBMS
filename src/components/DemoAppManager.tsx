@@ -102,8 +102,6 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
     } catch (error: any) {
       if (error.message?.includes('already exists')) {
         setInitialized(prev => new Set(prev).add(config.id));
-      } else {
-        console.error('Init error:', error);
       }
     }
   }, [executor, initialized]);
@@ -116,8 +114,7 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
       if (result.success && result.rows) {
         setAllRecords(result.rows as Record<string, any>[]);
       }
-    } catch (error) {
-      console.error('Fetch error:', error);
+    } catch {
       setAllRecords([]);
     } finally {
       setLoading(false);
@@ -259,8 +256,7 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
           incrementRowsInserted(successCount);
         }
       }
-    } catch (error) {
-      console.error('Load sample error:', error);
+    } catch {
       toast.error('Failed to load sample data');
     }
     

@@ -79,11 +79,9 @@ export const QueryHistory = ({ onSelectQuery }: QueryHistoryProps) => {
       if (!error && data) {
         setHistory(data);
       } else {
-        console.error('Error fetching history:', error);
         setHistory([]);
       }
-    } catch (error) {
-      console.error('Error fetching history:', error);
+    } catch {
       setHistory([]);
     } finally {
       setLoading(false);
@@ -111,14 +109,12 @@ export const QueryHistory = ({ onSelectQuery }: QueryHistoryProps) => {
           .is('user_id', null)
           .eq('session_id', sessionId);
 
-        if (error) {
-          console.error('Failed to claim anonymous queries:', error);
-        } else {
+        if (!error) {
           // Refetch to show the claimed queries
           fetchHistory();
         }
-      } catch (err) {
-        console.error('Error claiming queries:', err);
+      } catch {
+        // Silent failure
       }
     };
 

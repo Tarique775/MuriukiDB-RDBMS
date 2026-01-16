@@ -37,8 +37,7 @@ export function useSounds() {
     if (!audioContextRef.current) {
       try {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      } catch (e) {
-        console.warn('Web Audio API not supported');
+      } catch {
         return null;
       }
     }

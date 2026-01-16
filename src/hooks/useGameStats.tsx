@@ -280,7 +280,6 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
-        console.warn('[GameStats] Error fetching server stats:', fetchError);
         return;
       }
 
@@ -324,11 +323,9 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
             last_seen: new Date().toISOString(),
           })
           .eq('user_id', userId);
-
-        console.log('[GameStats] Background sync completed');
       }
-    } catch (err) {
-      console.warn('[GameStats] Background sync error:', err);
+    } catch {
+      // Silent failure for background sync
     }
   }, [stats]);
 
@@ -383,9 +380,8 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
     // Claim RDBMS tables from anonymous session
     try {
       await supabase.rpc('claim_session_data', { p_session_id: sessionId });
-      console.log('[GameStats] Claimed session tables for user');
-    } catch (err) {
-      console.warn('[GameStats] Could not claim session data:', err);
+    } catch {
+      // Silent failure - may already be claimed
     }
     
     // Fetch server leaderboard stats to merge
@@ -409,8 +405,8 @@ export const GameStatsProvider = ({ children }: { children: ReactNode }) => {
           highestStreak: data.highest_streak || 0,
         };
       }
-    } catch (err) {
-      console.error('Error fetching server stats:', err);
+    } catch {
+      // Silent failure for server stats fetch
     }
     
     // Merge all three sources: server, anonymous local, user local

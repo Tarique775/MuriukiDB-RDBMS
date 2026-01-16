@@ -71,14 +71,13 @@ export function ProfilePanel() {
         return;
       }
       
-      // Count users with MORE XP than current user's merged XP
-      const { count, error } = await supabase
-        .from('leaderboard')
-        .select('id', { count: 'exact', head: true })
-        .gt('xp', currentMergedXp);
+      // Use RPC function to bypass RLS and get accurate global rank
+      const { data, error } = await supabase.rpc('get_global_rank_for_xp', { 
+        p_xp: currentMergedXp 
+      });
       
-      if (!error && count !== null) {
-        setGlobalRank(count + 1);
+      if (!error && data !== null) {
+        setGlobalRank(data);
       }
     };
     
@@ -132,8 +131,8 @@ export function ProfilePanel() {
           }
         }
       }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    } catch {
+      // Silent failure - toast shown by supabase client if needed
     } finally {
       setLoading(false);
     }
