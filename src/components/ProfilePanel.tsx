@@ -54,6 +54,37 @@ export function ProfilePanel() {
     }
   }, [user]);
 
+  // Recalculate global rank whenever user, profile, or stats.xp changes
+  useEffect(() => {
+    const calculateRank = async () => {
+      // Guard: don't calculate if no user or no profile data
+      if (!user || !profile) {
+        setGlobalRank(null);
+        return;
+      }
+
+      // Calculate merged XP inside the effect
+      const currentMergedXp = Math.max(profile.xp || 0, stats.xp || 0);
+      
+      if (currentMergedXp === 0) {
+        setGlobalRank(null);
+        return;
+      }
+      
+      // Count users with MORE XP than current user's merged XP
+      const { count, error } = await supabase
+        .from('leaderboard')
+        .select('id', { count: 'exact', head: true })
+        .gt('xp', currentMergedXp);
+      
+      if (!error && count !== null) {
+        setGlobalRank(count + 1);
+      }
+    };
+    
+    calculateRank();
+  }, [user, profile, stats.xp]);
+
   const fetchProfile = async () => {
     if (!user) return;
     setLoading(true);
@@ -251,28 +282,6 @@ export function ProfilePanel() {
 
   // Use merged XP for rank calculation
   const rankInfo = getRankInfo(mergedXp);
-
-  // Recalculate global rank whenever mergedXp changes
-  useEffect(() => {
-    const calculateRank = async () => {
-      if (mergedXp === 0) {
-        setGlobalRank(null);
-        return;
-      }
-      
-      // Count users with MORE XP than current user's merged XP
-      const { count, error } = await supabase
-        .from('leaderboard')
-        .select('id', { count: 'exact', head: true })
-        .gt('xp', mergedXp);
-      
-      if (!error && count !== null) {
-        setGlobalRank(count + 1);
-      }
-    };
-    
-    calculateRank();
-  }, [mergedXp]);
 
   return (
     <Card className="glass-card border-primary/30 h-full flex flex-col overflow-hidden">
