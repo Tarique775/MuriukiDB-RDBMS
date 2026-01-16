@@ -6,9 +6,9 @@ import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 
 type AuthStep = 
   | 'idle' 
-  | 'signup_nickname' | 'signup_email' | 'signup_password' | 'signup_sending_otp' | 'signup_otp' | 'signup_creating'
+  | 'signup_nickname' | 'signup_email' | 'signup_password' | 'signup_confirming'
   | 'login_email' | 'login_password'
-  | 'recovery_email' | 'recovery_otp' | 'recovery_new_password'
+  | 'recovery_email' | 'recovery_confirming' | 'recovery_new_password'
   | 'email_change_new' | 'email_change_confirm';
 
 interface TerminalAuthProps {
@@ -33,7 +33,7 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
   const [currentPasswordInput, setCurrentPasswordInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { signUp, signIn, resetPassword, verifyOtp, updatePassword, updateEmail, sendCustomOtp, verifyCustomOtp, createUserAfterOtp, user } = useAuth();
+  const { signUp, signIn, resetPassword, updatePassword, updateEmail, user } = useAuth();
 
   // Show recovery mode welcome message
   useEffect(() => {
@@ -135,7 +135,7 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
         addOutput('output', '║         PASSWORD RECOVERY                ║');
         addOutput('output', '╚══════════════════════════════════════════╝');
         addOutput('output', '');
-        addOutput('output', 'Enter your EMAIL to receive a 6-digit code:');
+        addOutput('output', 'Enter your EMAIL to receive a reset link:');
         setStep('recovery_email');
         return;
       }
@@ -229,7 +229,7 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
       addOutput('input', `> ${'*'.repeat(password.length)}`);
       setFormData(prev => ({ ...prev, password }));
       
-      // Show summary and send OTP
+      // Show summary and create account
       addOutput('output', '');
       addOutput('output', '╔══════════════════════════════════════════╗');
       addOutput('output', `║ Nickname: ${formData.nickname.padEnd(29)}║`);
@@ -237,10 +237,10 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
       addOutput('output', '╚══════════════════════════════════════════╝');
       addOutput('output', '');
       setIsProcessing(true);
-      addOutput('output', 'Sending verification code to your email...');
+      addOutput('output', 'Creating your account...');
       
-      // Send custom OTP (not Supabase magic link)
-      const { error } = await sendCustomOtp(formData.email, 'signup');
+      // Use native Supabase signup with email confirmation link
+      const { error, needsEmailConfirmation } = await signUp(formData.email, password, formData.nickname);
       
       if (error) {
         addOutput('error', `Error: ${error}`);
@@ -250,63 +250,25 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
         return;
       }
       
-      addOutput('success', '');
-      addOutput('success', '✓ Verification code sent!');
-      addOutput('output', '');
-      addOutput('output', 'Check your email for a 6-character alphanumeric code.');
-      addOutput('output', '(Code expires in 15 minutes)');
-      addOutput('output', '');
-      addOutput('output', 'Enter the 6-character code:');
-      if (onEmailSent) {
-        onEmailSent(formData.email);
+      if (needsEmailConfirmation) {
+        addOutput('success', '');
+        addOutput('success', '✓ Account created!');
+        addOutput('output', '');
+        addOutput('output', 'Check your email and click the confirmation link.');
+        addOutput('output', 'You will be automatically logged in after clicking.');
+        if (onEmailSent) {
+          onEmailSent(formData.email);
+        }
+        setStep('signup_confirming');
+      } else {
+        addOutput('success', '');
+        addOutput('success', '✓ Account created successfully!');
+        addOutput('success', '✓ You are now logged in');
+        addOutput('success', '');
+        toast.success('Welcome to MuriukiDB RDBMS!');
+        setFormData({ nickname: '', email: '', password: '', newEmail: '' });
+        completeAuth();
       }
-      setStep('signup_otp');
-      setIsProcessing(false);
-      return;
-    }
-
-    // Handle OTP verification for signup - now uses custom OTP
-    if (step === 'signup_otp') {
-      const code = rawValue.trim().toUpperCase();
-      if (code.length !== 6) {
-        addOutput('input', `> ${code}`);
-        addOutput('error', 'Please enter a valid 6-character code');
-        return;
-      }
-      addOutput('input', `> ${code}`);
-      setIsProcessing(true);
-      addOutput('output', 'Verifying code...');
-      
-      // Verify custom OTP
-      const { error: verifyError } = await verifyCustomOtp(formData.email, code, 'signup');
-      
-      if (verifyError) {
-        addOutput('error', `Error: ${verifyError}`);
-        addOutput('output', 'Please try entering the code again:');
-        setIsProcessing(false);
-        return;
-      }
-      
-      addOutput('success', '✓ Email verified!');
-      addOutput('output', 'Creating your account...');
-      
-      // Now create the user account after OTP verification
-      const { error: createError } = await createUserAfterOtp(formData.email, formData.password, formData.nickname);
-      
-      if (createError) {
-        addOutput('error', `Error: ${createError}`);
-        setStep('idle');
-        setIsProcessing(false);
-        return;
-      }
-      
-      addOutput('success', '');
-      addOutput('success', '✓ Account created successfully!');
-      addOutput('success', '✓ You are now logged in');
-      addOutput('success', '');
-      toast.success('Welcome to MuriukiDB RDBMS!');
-      setFormData({ nickname: '', email: '', password: '', newEmail: '' });
-      completeAuth();
       setIsProcessing(false);
       return;
     }
@@ -354,7 +316,7 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
       return;
     }
 
-    // Handle recovery flow - sends custom OTP code (not magic link)
+    // Handle recovery flow - sends native Supabase reset email
     if (step === 'recovery_email') {
       const email = rawValue.trim();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -366,10 +328,10 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
       addOutput('input', `> ${email}`);
       setFormData(prev => ({ ...prev, email }));
       setIsProcessing(true);
-      addOutput('output', 'Sending 6-character recovery code...');
+      addOutput('output', 'Sending password reset link...');
       
-      // Use custom OTP for recovery
-      const { error } = await sendCustomOtp(email, 'recovery');
+      // Use native Supabase password reset
+      const { error } = await resetPassword(email);
       
       if (error) {
         addOutput('error', `Error: ${error}`);
@@ -379,46 +341,11 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
       }
       
       addOutput('success', '');
-      addOutput('success', '✓ Recovery code sent!');
+      addOutput('success', '✓ Password reset link sent!');
       addOutput('output', '');
-      addOutput('output', 'Check your email for a 6-character alphanumeric code.');
-      addOutput('output', '(Code expires in 15 minutes)');
-      addOutput('output', '');
-      addOutput('output', 'Enter the 6-character code:');
-      setStep('recovery_otp');
-      setIsProcessing(false);
-      return;
-    }
-
-    // Handle OTP verification for recovery - uses custom OTP
-    if (step === 'recovery_otp') {
-      const code = rawValue.trim().toUpperCase();
-      if (code.length !== 6) {
-        addOutput('input', `> ${code}`);
-        addOutput('error', 'Please enter a valid 6-character code');
-        return;
-      }
-      addOutput('input', `> ${code}`);
-      setIsProcessing(true);
-      addOutput('output', 'Verifying code...');
-      
-      const { error } = await verifyCustomOtp(formData.email, code, 'recovery');
-      
-      if (error) {
-        addOutput('error', `Error: ${error}`);
-        addOutput('output', 'Please try entering the code again:');
-        setIsProcessing(false);
-        return;
-      }
-      
-      addOutput('success', '');
-      addOutput('success', '✓ Code verified!');
-      addOutput('output', '');
-      addOutput('output', 'Now use LOGIN to access your account with your password.');
-      addOutput('output', '(If you forgot your password, contact support)');
-      addOutput('output', '');
-      setFormData({ nickname: '', email: '', password: '', newEmail: '' });
-      setStep('idle');
+      addOutput('output', 'Check your email and click the reset link.');
+      addOutput('output', 'You will be prompted to set a new password.');
+      setStep('recovery_confirming');
       setIsProcessing(false);
       return;
     }
@@ -501,7 +428,7 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }:
       setStep('idle');
       return;
     }
-  }, [step, formData, signUp, signIn, sendCustomOtp, verifyCustomOtp, createUserAfterOtp, resetPassword, verifyOtp, updatePassword, updateEmail, onCancel, onEmailSent, completeAuth, user]);
+  }, [step, formData, signUp, signIn, resetPassword, updatePassword, updateEmail, onCancel, onEmailSent, completeAuth, user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

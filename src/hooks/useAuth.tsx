@@ -416,7 +416,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Reset password now sends OTP code instead of magic link
+  // Reset password using native Supabase email links
   const resetPassword = useCallback(async (email: string): Promise<{ error: string | null }> => {
     try {
       const trimmedEmail = email.trim();
@@ -425,17 +425,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: 'Email is required' };
       }
 
-      // Use signInWithOtp to send a code for password reset
-      // We'll use type 'recovery' when verifying
-      const { error } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: {
-          shouldCreateUser: false, // Don't create a new user if they don't exist
-        },
+      const redirectUrl = `${window.location.origin}/`;
+
+      // Use native Supabase password reset - sends email with reset link
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: redirectUrl,
       });
 
       if (error) {
-        if (error.message.includes('User not found') || error.message.includes('user_not_found') || error.message.includes('Signups not allowed')) {
+        if (error.message.includes('User not found') || error.message.includes('user_not_found')) {
           return { error: 'No account found with this email' };
         }
         return { error: error.message };
