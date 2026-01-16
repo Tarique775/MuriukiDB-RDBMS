@@ -110,63 +110,140 @@ const handler = async (req: Request): Promise<Response> => {
     let subject: string;
     let htmlContent: string;
 
-    switch (purpose) {
-      case "signup":
-        subject = "Confirm your email for MuriukiDB";
-        htmlContent = `
-          <div style="font-family: 'Courier New', monospace; max-width: 600px; margin: 0 auto; background: #0a0a0a; color: #00ff00; padding: 40px; border: 1px solid #00ff00;">
-            <h1 style="color: #00ff00; border-bottom: 1px solid #00ff00; padding-bottom: 20px; margin-bottom: 20px;">Confirm your email</h1>
-            <p style="color: #ffffff; font-size: 16px; line-height: 1.6;">
-              Thanks for signing up for <strong style="color: #00ff00;">MuriukiDB RDBMS</strong> app!
-            </p>
-            <p style="color: #ffffff; font-size: 16px; line-height: 1.6;">
-              Please confirm your email address (<strong style="color: #00ff00;">${email}</strong>) by entering the code below:
-            </p>
-            <div style="background: #1a1a1a; border: 2px solid #00ff00; padding: 30px; text-align: center; margin: 30px 0;">
-              <span style="font-size: 36px; letter-spacing: 8px; color: #00ff00; font-weight: bold;">${otpCode}</span>
-            </div>
-            <p style="color: #888888; font-size: 12px;">This code expires in 15 minutes.</p>
-          </div>
-        `;
-        break;
-
-      case "recovery":
-        subject = "Password recovery code for MuriukiDB";
-        htmlContent = `
-          <div style="font-family: 'Courier New', monospace; max-width: 600px; margin: 0 auto; background: #0a0a0a; color: #00ff00; padding: 40px; border: 1px solid #00ff00;">
-            <h1 style="color: #00ff00; border-bottom: 1px solid #00ff00; padding-bottom: 20px; margin-bottom: 20px;">Password Recovery</h1>
-            <p style="color: #ffffff; font-size: 16px; line-height: 1.6;">
-              You requested to reset your password for <strong style="color: #00ff00;">MuriukiDB RDBMS</strong>.
-            </p>
-            <p style="color: #ffffff; font-size: 16px; line-height: 1.6;">
-              Enter this verification code to continue:
-            </p>
-            <div style="background: #1a1a1a; border: 2px solid #00ff00; padding: 30px; text-align: center; margin: 30px 0;">
-              <span style="font-size: 36px; letter-spacing: 8px; color: #00ff00; font-weight: bold;">${otpCode}</span>
-            </div>
-            <p style="color: #888888; font-size: 12px;">This code expires in 15 minutes. If you didn't request this, please ignore this email.</p>
-          </div>
-        `;
-        break;
-
-      case "email_change":
-        subject = "Confirm your new email for MuriukiDB";
-        htmlContent = `
-          <div style="font-family: 'Courier New', monospace; max-width: 600px; margin: 0 auto; background: #0a0a0a; color: #00ff00; padding: 40px; border: 1px solid #00ff00;">
-            <h1 style="color: #00ff00; border-bottom: 1px solid #00ff00; padding-bottom: 20px; margin-bottom: 20px;">Confirm Email Change</h1>
-            <p style="color: #ffffff; font-size: 16px; line-height: 1.6;">
-              You requested to change your email address for <strong style="color: #00ff00;">MuriukiDB RDBMS</strong>.
-            </p>
-            <p style="color: #ffffff; font-size: 16px; line-height: 1.6;">
-              Enter this verification code to confirm:
-            </p>
-            <div style="background: #1a1a1a; border: 2px solid #00ff00; padding: 30px; text-align: center; margin: 30px 0;">
-              <span style="font-size: 36px; letter-spacing: 8px; color: #00ff00; font-weight: bold;">${otpCode}</span>
-            </div>
-            <p style="color: #888888; font-size: 12px;">This code expires in 15 minutes.</p>
-          </div>
-        `;
-        break;
+    if (purpose === 'signup') {
+      subject = "Confirm your email - MuriukiDB";
+      htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="500" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 40px;">
+                  <tr>
+                    <td align="center" style="padding-bottom: 24px;">
+                      <h1 style="color: #22c55e; font-size: 28px; margin: 0; font-weight: 600;">MuriukiDB</h1>
+                      <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">Welcome to the terminal</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-bottom: 24px;">
+                      <p style="color: #e5e7eb; font-size: 16px; margin: 0 0 16px 0; line-height: 1.6;">Thanks for signing up! Use the verification code below to complete your registration:</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding-bottom: 24px;">
+                      <div style="background: #111; border: 2px solid #22c55e; border-radius: 8px; padding: 20px 40px; display: inline-block;">
+                        <span style="color: #22c55e; font-size: 32px; font-weight: bold; letter-spacing: 8px;">${otpCode}</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <p style="color: #9ca3af; font-size: 14px; margin: 0; line-height: 1.6;">This code expires in <strong style="color: #22c55e;">15 minutes</strong>.</p>
+                      <p style="color: #6b7280; font-size: 13px; margin: 16px 0 0 0;">If you didn't request this code, you can safely ignore this email.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
+    } else if (purpose === 'recovery') {
+      subject = "Password recovery code - MuriukiDB";
+      htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="500" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 40px;">
+                  <tr>
+                    <td align="center" style="padding-bottom: 24px;">
+                      <h1 style="color: #fbbf24; font-size: 28px; margin: 0; font-weight: 600;">MuriukiDB</h1>
+                      <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">Password Recovery</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-bottom: 24px;">
+                      <p style="color: #e5e7eb; font-size: 16px; margin: 0 0 16px 0; line-height: 1.6;">You requested to reset your password. Use the code below to proceed:</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding-bottom: 24px;">
+                      <div style="background: #111; border: 2px solid #fbbf24; border-radius: 8px; padding: 20px 40px; display: inline-block;">
+                        <span style="color: #fbbf24; font-size: 32px; font-weight: bold; letter-spacing: 8px;">${otpCode}</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <p style="color: #9ca3af; font-size: 14px; margin: 0; line-height: 1.6;">This code expires in <strong style="color: #fbbf24;">15 minutes</strong>.</p>
+                      <p style="color: #6b7280; font-size: 13px; margin: 16px 0 0 0;">If you didn't request this, please secure your account immediately.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
+    } else {
+      subject = "Verify your email change - MuriukiDB";
+      htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="500" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 40px;">
+                  <tr>
+                    <td align="center" style="padding-bottom: 24px;">
+                      <h1 style="color: #3b82f6; font-size: 28px; margin: 0; font-weight: 600;">MuriukiDB</h1>
+                      <p style="color: #6b7280; font-size: 14px; margin: 8px 0 0 0;">Email Change Verification</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-bottom: 24px;">
+                      <p style="color: #e5e7eb; font-size: 16px; margin: 0 0 16px 0; line-height: 1.6;">Here's your verification code to confirm your new email:</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding-bottom: 24px;">
+                      <div style="background: #111; border: 2px solid #3b82f6; border-radius: 8px; padding: 20px 40px; display: inline-block;">
+                        <span style="color: #3b82f6; font-size: 32px; font-weight: bold; letter-spacing: 8px;">${otpCode}</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <p style="color: #9ca3af; font-size: 14px; margin: 0; line-height: 1.6;">This code expires in <strong style="color: #3b82f6;">15 minutes</strong>.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
     }
 
     const emailResponse = await resend.emails.send({
