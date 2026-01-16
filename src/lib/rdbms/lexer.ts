@@ -10,7 +10,9 @@ const SQL_KEYWORDS = new Set([
   'DATETIME', 'AND', 'OR', 'LIKE', 'IN', 'BETWEEN', 'IS', 'AS', 'JOIN',
   'INNER', 'LEFT', 'RIGHT', 'OUTER', 'ORDER', 'BY', 'ASC', 'DESC', 'LIMIT',
   'OFFSET', 'IF', 'EXISTS', 'SHOW', 'TABLES', 'DESCRIBE', 'DESC', 'TRUE',
-  'FALSE', 'CONSTRAINT', 'FOREIGN', 'REFERENCES'
+  'FALSE', 'CONSTRAINT', 'FOREIGN', 'REFERENCES', 'GROUP', 'HAVING', 'DISTINCT',
+  // Aggregate functions must be keywords for parser to detect them correctly
+  'COUNT', 'SUM', 'AVG', 'MIN', 'MAX'
 ]);
 
 const OPERATORS = new Set(['=', '!=', '<>', '<', '>', '<=', '>=', '+', '-', '*', '/']);

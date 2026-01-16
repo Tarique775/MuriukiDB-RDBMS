@@ -402,8 +402,12 @@ export class Parser {
   }
 
   private parseSelectColumn(): SelectColumn {
-    // Check if this is an aggregate function
-    if (this.current().type === 'KEYWORD' && this.isAggregateFunction(this.current().value)) {
+    // Check if this is an aggregate function - support both KEYWORD and IDENTIFIER token types
+    const tokenValue = this.current().value.toUpperCase();
+    const isAggregate = this.isAggregateFunction(tokenValue);
+    const tokenType = this.current().type;
+    
+    if (isAggregate && (tokenType === 'KEYWORD' || tokenType === 'IDENTIFIER')) {
       const funcName = this.advance().value.toUpperCase() as AggregateFunction;
       this.expect('PUNCTUATION', '(');
       
@@ -420,7 +424,13 @@ export class Parser {
         this.advance();
         columnName = '*';
       } else {
-        columnName = this.expect('IDENTIFIER').value;
+        // Allow identifier or keyword (for column names that might be reserved)
+        const colToken = this.current();
+        if (colToken.type === 'IDENTIFIER' || colToken.type === 'KEYWORD') {
+          columnName = this.advance().value;
+        } else {
+          columnName = this.expect('IDENTIFIER').value;
+        }
       }
       
       this.expect('PUNCTUATION', ')');

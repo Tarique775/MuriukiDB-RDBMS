@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,6 +15,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+// Session key must match executor.ts
+const SESSION_KEY = 'muriukidb-session-id';
+
+function getSessionId(): string | null {
+  // Try sessionStorage first, then localStorage for persistence
+  let sessionId = sessionStorage.getItem(SESSION_KEY);
+  if (!sessionId) {
+    sessionId = localStorage.getItem(SESSION_KEY);
+    if (sessionId) {
+      // Restore to sessionStorage
+      sessionStorage.setItem(SESSION_KEY, sessionId);
+    }
+  }
+  return sessionId;
+}
 
 interface QueryHistoryItem {
   id: string;
@@ -40,40 +56,81 @@ export const QueryHistory = ({ onSelectQuery }: QueryHistoryProps) => {
   const [filterMode, setFilterMode] = useState<FilterMode>('own');
   const { user } = useAuth();
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
+      const sessionId = getSessionId();
+      const userId = user?.id;
+
       let query = supabase
         .from('rdbms_query_history')
         .select('id, query, success, execution_time_ms, created_at, user_id, session_id')
         .order('created_at', { ascending: false })
         .limit(200);
 
+      // For "own" mode with a user, also include session queries (pre-login)
+      if (filterMode === 'own') {
+        if (userId && sessionId) {
+          query = query.or(`user_id.eq.${userId},session_id.eq.${sessionId}`);
+        } else if (userId) {
+          query = query.eq('user_id', userId);
+        } else if (sessionId) {
+          query = query.eq('session_id', sessionId);
+        }
+      }
+      // For 'global' and 'all', fetch without user-specific filters
+      // RLS will handle access control
+
       const { data, error } = await query;
       
       if (!error && data) {
         setHistory(data);
+      } else {
+        console.error('Error fetching history:', error);
+        setHistory([]);
       }
     } catch (error) {
       console.error('Error fetching history:', error);
+      setHistory([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, filterMode]);
 
+  // Refetch when user or filter mode changes
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [fetchHistory]);
 
-  // Get session ID from sessionStorage for matching own queries
-  const getSessionId = () => {
-    try {
-      // Use the same session ID as the executor
-      return sessionStorage.getItem('muriukidb-session-id');
-    } catch {
-      return null;
-    }
-  };
+  // Claim anonymous queries after login
+  useEffect(() => {
+    const claimAnonymousQueries = async () => {
+      if (!user?.id) return;
+      
+      const sessionId = getSessionId();
+      if (!sessionId) return;
+
+      // Update anonymous queries from this session to be owned by the user
+      try {
+        const { error } = await supabase
+          .from('rdbms_query_history')
+          .update({ user_id: user.id })
+          .is('user_id', null)
+          .eq('session_id', sessionId);
+
+        if (error) {
+          console.error('Failed to claim anonymous queries:', error);
+        } else {
+          // Refetch to show the claimed queries
+          fetchHistory();
+        }
+      } catch (err) {
+        console.error('Error claiming queries:', err);
+      }
+    };
+
+    claimAnonymousQueries();
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter history based on filter mode and search term
   const filteredHistory = useMemo(() => {
