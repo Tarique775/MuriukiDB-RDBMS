@@ -50,29 +50,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[AuthProvider] Auth event:', event, 'user:', newSession?.user?.id?.slice(0, 8));
-        }
-
         // Always process critical events - never skip these
         if (CRITICAL_EVENTS.includes(event)) {
           setSession(newSession);
           setUser(newSession?.user ?? null);
           setLoading(false);
           
-          // Show helpful message on token refresh failure
-          if (event === 'SIGNED_OUT' && pendingAuthActionRef.current === null) {
-            // Unexpected signout - might be rate limit
-            console.warn('[AuthProvider] Unexpected SIGNED_OUT event');
-          }
           return;
         }
         
         // Detect PASSWORD_RECOVERY event - user clicked recovery link in email
         if (event === 'PASSWORD_RECOVERY') {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[AuthProvider] PASSWORD_RECOVERY detected, enabling recovery mode');
-          }
           setIsRecoveryMode(true);
           setSession(newSession);
           setUser(newSession?.user ?? null);
@@ -83,9 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // For SIGNED_IN, check if we should skip due to recent auth action
         if (event === 'SIGNED_IN' && justCompletedAuthRef.current) {
           // Skip duplicate SIGNED_IN from our own action
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[AuthProvider] Skipping duplicate SIGNED_IN');
-          }
           return;
         }
 
@@ -101,10 +86,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       setLoading(false);
-    }).catch((error) => {
-      console.error('[AuthProvider] Error getting session:', error);
+    }).catch(() => {
       setLoading(false);
-      // Don't toast here - might be normal startup with no session
     });
 
     return () => subscription.unsubscribe();

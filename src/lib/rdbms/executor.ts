@@ -116,8 +116,7 @@ async function checkServerRateLimit(): Promise<{ allowed: boolean; remaining: nu
     rateLimitCacheExpiry = now + 5000;
     
     return { allowed: true, remaining: data.remaining || 30 };
-  } catch (error) {
-    console.warn('Server rate limit check failed, using client-side fallback');
+  } catch {
     isServerRateLimitActive = false;
     rateLimitCacheValue = { allowed: true, remaining: RESOURCE_LIMITS.MAX_QUERIES_PER_MINUTE - queryCount };
     rateLimitCacheExpiry = now + 5000;

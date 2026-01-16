@@ -321,6 +321,7 @@ export type Database = {
           highest_streak: number
         }[]
       }
+      get_global_rank_for_xp: { Args: { p_xp: number }; Returns: number }
       get_leaderboard_public: {
         Args: never
         Returns: {
