@@ -80,6 +80,31 @@ const Index = () => {
     },
   });
 
+  // Handle auth errors from URL hash (e.g., expired email links)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('error=')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const error = params.get('error');
+      const errorCode = params.get('error_code');
+      const errorDescription = params.get('error_description');
+      
+      if (error || errorCode) {
+        const message = errorDescription?.replace(/\+/g, ' ') 
+          || errorCode?.replace(/_/g, ' ') 
+          || 'Authentication failed';
+        
+        toast.error(`Authentication Error: ${message}`, {
+          description: 'Please try signing up again from the production site.',
+          duration: 8000,
+        });
+        
+        // Clear the hash from URL
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }, []);
+
   // Handle tour step-based tab switching
   useEffect(() => {
     if (!tour.isActive || !tour.currentStep) return;

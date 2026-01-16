@@ -143,7 +143,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: 'Nickname already taken' };
       }
 
-      const redirectUrl = `${window.location.origin}/`;
+      // Always use production URL for email redirects to avoid PKCE domain mismatch
+      const PRODUCTION_URL = 'https://rdbms-muriuki.vercel.app';
+      const redirectUrl = `${PRODUCTION_URL}/`;
 
       const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
@@ -292,7 +294,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: 'Email is required' };
       }
 
-      const redirectUrl = `${window.location.origin}/`;
+      // Always use production URL for email redirects to avoid PKCE domain mismatch
+      const PRODUCTION_URL = 'https://rdbms-muriuki.vercel.app';
+      const redirectUrl = `${PRODUCTION_URL}/`;
 
       // Use native Supabase password reset - sends email with reset link
       const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
