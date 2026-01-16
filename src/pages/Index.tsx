@@ -40,6 +40,11 @@ const Index = () => {
   const [highlightedQueryId, setHighlightedQueryId] = useState<string | null>(null);
   const [activeTableId, setActiveTableId] = useState('contacts');
   const [showTutorial, setShowTutorial] = useState(false);
+  // Sheet states for mobile/tablet panels
+  const [sampleSheetOpen, setSampleSheetOpen] = useState(false);
+  const [historySheetOpen, setHistorySheetOpen] = useState(false);
+  const [rankSheetOpen, setRankSheetOpen] = useState(false);
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const { userInfo } = useUserFingerprint();
   const { user } = useAuth();
   const { migrateAnonymousStats } = useGameStats();
@@ -79,6 +84,9 @@ const Index = () => {
     setActiveTab('repl');
     setMobilePanel(null);
     setHighlightedQueryId(null);
+    // Close mobile/tablet sheets after query selection
+    setSampleSheetOpen(false);
+    setHistorySheetOpen(false);
   };
 
   const handleQueryError = (errorMessage: string, attemptedQuery: string) => {
@@ -190,7 +198,7 @@ const Index = () => {
       {/* Mobile/Tablet Side Panel Tabs */}
       <div className="lg:hidden flex-shrink-0 border-b border-border/30">
         <div className="flex gap-2 p-3 overflow-x-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent">
-          <Sheet>
+          <Sheet open={sampleSheetOpen} onOpenChange={setSampleSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
                 <Code className="w-3.5 h-3.5" />
@@ -213,7 +221,7 @@ const Index = () => {
             </SheetContent>
           </Sheet>
 
-          <Sheet>
+          <Sheet open={historySheetOpen} onOpenChange={setHistorySheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
                 <History className="w-3.5 h-3.5" />
@@ -231,7 +239,7 @@ const Index = () => {
             </SheetContent>
           </Sheet>
 
-          <Sheet>
+          <Sheet open={rankSheetOpen} onOpenChange={setRankSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
                 <Trophy className="w-3.5 h-3.5" />
@@ -249,7 +257,7 @@ const Index = () => {
             </SheetContent>
           </Sheet>
 
-          <Sheet>
+          <Sheet open={profileSheetOpen} onOpenChange={setProfileSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
                 <User className="w-3.5 h-3.5" />
@@ -261,7 +269,7 @@ const Index = () => {
                 <SheetTitle className="font-mono text-primary">Your Profile</SheetTitle>
                 <SheetDescription>Manage your account</SheetDescription>
               </SheetHeader>
-              <div className="mt-4 h-[calc(100%-4rem)] overflow-auto">
+              <div className="mt-4 h-[calc(100%-4rem)] overflow-auto scrollbar-thin">
                 <ProfilePanel />
               </div>
             </SheetContent>

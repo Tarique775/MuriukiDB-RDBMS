@@ -246,7 +246,7 @@ export function Leaderboard() {
         </FadeContent>
 
         {/* Leaderboard List */}
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="flex-1 min-h-0 scrollbar-thin">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin" />

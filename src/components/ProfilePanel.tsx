@@ -225,8 +225,8 @@ export function ProfilePanel() {
   const rankInfo = getRankInfo(mergedXp);
 
   return (
-    <Card className="glass-card border-primary/30">
-      <CardHeader className="pb-3">
+    <Card className="glass-card border-primary/30 h-full flex flex-col overflow-hidden">
+      <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-mono flex items-center gap-2">
             <User className="w-4 h-4 text-primary" />
@@ -238,8 +238,8 @@ export function ProfilePanel() {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <FadeContent blur duration={300}>
+      <CardContent className="flex-1 min-h-0 overflow-auto scrollbar-thin">
+        <FadeContent blur duration={300} className="space-y-4">
           {/* Nickname Section */}
           <div className="space-y-2">
             <Label className="text-xs font-mono text-muted-foreground">Nickname</Label>

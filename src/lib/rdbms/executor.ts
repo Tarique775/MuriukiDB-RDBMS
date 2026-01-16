@@ -63,8 +63,19 @@ let windowStart = Date.now();
 let serverRateLimitRemaining = 30;
 let isServerRateLimitActive = false;
 
+// Rate limit cache to reduce network calls
+let rateLimitCacheExpiry = 0;
+let rateLimitCacheValue = { allowed: true, remaining: 30 };
+
 // Server-side rate limit check - uses cached token to avoid refresh storms
 async function checkServerRateLimit(): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
+  // Use cached value if fresh (5 second TTL)
+  const now = Date.now();
+  if (now < rateLimitCacheExpiry && rateLimitCacheValue.remaining > 0) {
+    rateLimitCacheValue.remaining--;
+    return { ...rateLimitCacheValue };
+  }
+  
   try {
     const accessToken = getCachedAccessToken();
     const headers: Record<string, string> = {
@@ -87,6 +98,8 @@ async function checkServerRateLimit(): Promise<{ allowed: boolean; remaining: nu
 
     if (response.status === 429) {
       const data = await response.json();
+      rateLimitCacheValue = { allowed: false, remaining: 0 };
+      rateLimitCacheExpiry = now + 5000;
       return { 
         allowed: false, 
         remaining: 0, 
@@ -97,10 +110,17 @@ async function checkServerRateLimit(): Promise<{ allowed: boolean; remaining: nu
     const data = await response.json();
     serverRateLimitRemaining = data.remaining || 30;
     isServerRateLimitActive = true;
+    
+    // Cache for 5 seconds
+    rateLimitCacheValue = { allowed: true, remaining: data.remaining || 30 };
+    rateLimitCacheExpiry = now + 5000;
+    
     return { allowed: true, remaining: data.remaining || 30 };
   } catch (error) {
     console.warn('Server rate limit check failed, using client-side fallback');
     isServerRateLimitActive = false;
+    rateLimitCacheValue = { allowed: true, remaining: RESOURCE_LIMITS.MAX_QUERIES_PER_MINUTE - queryCount };
+    rateLimitCacheExpiry = now + 5000;
     return { allowed: true, remaining: RESOURCE_LIMITS.MAX_QUERIES_PER_MINUTE - queryCount };
   }
 }
@@ -140,8 +160,15 @@ export class QueryExecutor {
       
       const ast = this.parser.parse(sql);
       
+      // Detect batch inserts for longer timeout
+      const isBatchInsert = sql.toUpperCase().includes('VALUES') && 
+                            (sql.match(/\),\s*\(/g) || []).length > 3;
+      const timeout = isBatchInsert 
+        ? RESOURCE_LIMITS.QUERY_TIMEOUT_MS * 3  // 15s for batch inserts
+        : RESOURCE_LIMITS.QUERY_TIMEOUT_MS;     // 5s for normal queries
+      
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Query timeout (${RESOURCE_LIMITS.QUERY_TIMEOUT_MS / 1000}s limit)`)), RESOURCE_LIMITS.QUERY_TIMEOUT_MS)
+        setTimeout(() => reject(new Error(`Query timeout (${timeout / 1000}s limit)`)), timeout)
       );
       
       const result = await Promise.race([
@@ -203,11 +230,20 @@ export class QueryExecutor {
       throw new Error(`Maximum table limit reached (${RESOURCE_LIMITS.MAX_TABLES} tables). Drop unused tables first.`);
     }
 
-    const { data: existing } = await supabase
+    // Check for existing table with same name in user's scope
+    let existingQuery = supabase
       .from('rdbms_tables')
       .select('id')
-      .eq('table_name', node.tableName)
-      .maybeSingle();
+      .eq('table_name', node.tableName);
+    
+    // Scope to current user/session
+    if (userId) {
+      existingQuery = existingQuery.eq('user_id', userId);
+    } else {
+      existingQuery = existingQuery.eq('session_id', sessionId).is('user_id', null);
+    }
+    
+    const { data: existing } = await existingQuery.maybeSingle();
 
     if (existing) {
       if (node.ifNotExists) {
@@ -244,11 +280,21 @@ export class QueryExecutor {
   }
 
   private async executeDropTable(node: DropTableNode): Promise<QueryResult> {
-    const { data: table } = await supabase
+    const { userId, sessionId } = getUserContext();
+    
+    // Scope drop to user's tables
+    let dropQuery = supabase
       .from('rdbms_tables')
       .select('id')
-      .eq('table_name', node.tableName)
-      .maybeSingle();
+      .eq('table_name', node.tableName);
+    
+    if (userId) {
+      dropQuery = dropQuery.eq('user_id', userId);
+    } else {
+      dropQuery = dropQuery.eq('session_id', sessionId).is('user_id', null);
+    }
+    
+    const { data: table } = await dropQuery.maybeSingle();
 
     if (!table) {
       if (node.ifExists) {
@@ -778,10 +824,21 @@ export class QueryExecutor {
   }
 
   private async executeShowTables(_node: ShowTablesNode): Promise<QueryResult> {
-    const { data: tables, error } = await supabase
+    const { userId, sessionId } = getUserContext();
+    
+    // Scope to user's tables
+    let tablesQuery = supabase
       .from('rdbms_tables')
       .select('table_name, created_at')
       .order('table_name');
+    
+    if (userId) {
+      tablesQuery = tablesQuery.eq('user_id', userId);
+    } else {
+      tablesQuery = tablesQuery.eq('session_id', sessionId).is('user_id', null);
+    }
+    
+    const { data: tables, error } = await tablesQuery;
 
     if (error) throw new Error(error.message);
 
@@ -819,18 +876,37 @@ export class QueryExecutor {
   }
 
   private async getTable(tableName: string): Promise<TableSchema> {
-    const { data, error } = await supabase
+    const { userId, sessionId } = getUserContext();
+    
+    // First try to find table in user's scope
+    let tableQuery = supabase
       .from('rdbms_tables')
       .select('*')
-      .eq('table_name', tableName)
-      .maybeSingle();
+      .eq('table_name', tableName);
+    
+    if (userId) {
+      tableQuery = tableQuery.eq('user_id', userId);
+    } else {
+      tableQuery = tableQuery.eq('session_id', sessionId).is('user_id', null);
+    }
+    
+    const { data, error } = await tableQuery.maybeSingle();
 
     if (error) throw new Error(error.message);
     if (!data) {
-      const { data: tables } = await supabase
+      // Get list of user's tables for help message
+      let tablesQuery = supabase
         .from('rdbms_tables')
         .select('table_name')
         .limit(10);
+      
+      if (userId) {
+        tablesQuery = tablesQuery.eq('user_id', userId);
+      } else {
+        tablesQuery = tablesQuery.eq('session_id', sessionId).is('user_id', null);
+      }
+      
+      const { data: tables } = await tablesQuery;
       
       let helpMessage = `Table '${tableName}' does not exist.`;
       
