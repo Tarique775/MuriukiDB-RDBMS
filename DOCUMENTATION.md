@@ -28,7 +28,7 @@ MuriukiDB is a custom Relational Database Management System (RDBMS) built as a s
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS with custom terminal theme
-- **Backend**: Lovable Cloud (Supabase) for data persistence & authentication
+- **Backend**: Supabase for data persistence & authentication
 - **State Management**: React Context + sessionStorage for session tracking
 
 ### SQL Engine Components
@@ -244,7 +244,7 @@ The app runs at `http://localhost:8080` by default.
 
 ### Environment Variables
 
-The project uses Lovable Cloud, so no manual `.env` setup is required for the demo. For a custom Supabase backend, configure:
+The project uses Supabase for the backend. Configure your environment variables:
 
 ```env
 VITE_SUPABASE_URL=your_supabase_url

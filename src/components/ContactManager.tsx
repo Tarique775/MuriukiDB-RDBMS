@@ -936,7 +936,7 @@ export const ContactManager = () => {
       </FadeContent>
 
       <p className="text-xs text-muted-foreground font-mono text-center">
-        All operations use the custom SQL engine • Data persisted to Lovable Cloud
+        All operations use the custom SQL engine • Data persisted to Supabase
       </p>
 
       {/* Confirmation Dialogs */}
