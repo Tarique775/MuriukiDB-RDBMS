@@ -406,6 +406,60 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
     }
   };
 
+  // Batch update
+  const handleBatchUpdate = async () => {
+    if (selectedIds.size === 0) {
+      toast.error('Select records to update');
+      return;
+    }
+    
+    // Check if any fields have values to update
+    const fieldsToUpdate = Object.entries(batchFormData).filter(([_, v]) => v.trim() !== '');
+    if (fieldsToUpdate.length === 0) {
+      toast.error('Enter at least one field to update');
+      return;
+    }
+
+    setBatchUpdating(true);
+    try {
+      // Build SET clause from non-empty batch form fields
+      const setParts = fieldsToUpdate.map(([key, value]) => {
+        const col = tableConfig.columns.find(c => c.name === key);
+        if (col?.type === 'number' || col?.type === 'currency') {
+          return `${key} = ${value}`;
+        }
+        return `${key} = '${value.replace(/'/g, "''")}'`;
+      }).join(', ');
+      
+      // Update each selected record
+      for (const id of selectedIds) {
+        await executor.execute(`UPDATE ${tableConfig.tableName} SET ${setParts} WHERE id = ${id}`);
+      }
+      
+      // Optimistic UI update
+      setAllRecords(prev => prev.map(r => {
+        if (selectedIds.has(r.id)) {
+          const updates: Record<string, any> = {};
+          fieldsToUpdate.forEach(([key, value]) => {
+            const col = tableConfig.columns.find(c => c.name === key);
+            updates[key] = col?.type === 'number' || col?.type === 'currency' ? parseFloat(value) : value;
+          });
+          return { ...r, ...updates };
+        }
+        return r;
+      }));
+      
+      toast.success(`Updated ${selectedIds.size} ${tableConfig.name.toLowerCase()}`);
+      setSelectedIds(new Set());
+      setBatchEditMode(false);
+      setBatchFormData({});
+    } catch (error: any) {
+      toast.error(error.message || 'Batch update failed');
+    } finally {
+      setBatchUpdating(false);
+    }
+  };
+
   // Selection
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => {
@@ -771,6 +825,46 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
           </Button>
         </div>
       </FadeContent>
+
+      {/* Batch Edit Panel */}
+      {batchEditMode && (
+        <FadeContent blur duration={300}>
+          <Card className="glass-card border-accent/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-mono flex items-center gap-2">
+                <CheckSquare className="w-4 h-4" />
+                Batch Edit {selectedIds.size} {tableConfig.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-3">
+                Only filled fields will be updated. Leave fields empty to keep their current values.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {tableConfig.columns.map(col => (
+                  <DynamicFormField
+                    key={col.name}
+                    column={{ ...col, required: false }}
+                    value={batchFormData[col.name] || ''}
+                    onChange={(val) => setBatchFormData(prev => ({ ...prev, [col.name]: val }))}
+                    error={null}
+                    disabled={batchUpdating}
+                  />
+                ))}
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button onClick={handleBatchUpdate} className="font-mono" disabled={batchUpdating}>
+                  {batchUpdating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  Apply to {selectedIds.size} {tableConfig.name.toLowerCase()}
+                </Button>
+                <Button variant="ghost" onClick={() => { setBatchEditMode(false); setBatchFormData({}); }} disabled={batchUpdating}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </FadeContent>
+      )}
 
       {/* Data Table */}
       <FadeContent blur duration={400} delay={300}>

@@ -2,24 +2,41 @@
 
 A custom Relational Database Management System built for the **Pesapal Junior Dev Challenge '26**.
 
-**Live Demo**: [https://rdbms.lovable.app](https://rdbms.lovable.app)
+**Live Demo**: [https://rdbms-muriuki.vercel.app/](https://rdbms-muriuki.vercel.app/)
 
-![SQL REPL Interface](screenshots/repl.png)
+## Screenshots
+
+### SQL REPL Interface (Light Theme)
+![SQL REPL Interface Light](screenshots/repl-light.png)
+
+### SQL REPL Interface (Dark Theme)
+![SQL REPL Interface Dark](screenshots/repl-dark.png)
+
+### Achievements & Ranking System
+![Achievements Page](screenshots/achievements.png)
+
+### Global Leaderboard
+![Leaderboard](screenshots/leaderboard.png)
+
+## Video Demonstration
+
+[Watch the full demo video](screenshots/demo.mp4)
 
 ## ✨ Features
 
 - **Complete SQL Parser** - CREATE, INSERT, SELECT, UPDATE, DELETE with JOINs
 - **B-Tree Indexing** - Optimized query performance
 - **Terminal-Style REPL** - Real-time SQL execution with syntax highlighting
-- **Demo App** - Visual CRUD interface for 5 table types
+- **Demo App** - Visual CRUD interface for 5 table types (Contacts, Users, Products, Orders, Employees)
 - **Gamification** - 23 military ranks, XP rewards, badges & global leaderboard
 - **Real-time Updates** - Live data synchronization
+- **Sound Effects** - Audio feedback for XP gains, achievements, and rank ups (Web Audio API)
+- **Interactive Tour** - Guided walkthrough with spotlight overlay
+- **PWA Support** - Install as a native app on mobile devices
 
 ## 🎮 Ranking System
 
 Progress from **Private (0 XP)** to **Commander in Chief (1,000,000 XP)**!
-
-![Achievements Page](screenshots/achievements.png)
 
 ## 🚀 Quick Start
 
@@ -34,9 +51,9 @@ npm run dev
 
 1. Copy `.env.example` to `.env`
 2. Configure your Supabase credentials:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
-   - `VITE_SUPABASE_PROJECT_ID`
+   - `VITE_SUPABASE_URL` - Your Supabase project URL
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` - Your Supabase anon/public key
+   - `VITE_SUPABASE_PROJECT_ID` - Your Supabase project ID
 
 ## 🚢 Deploying to Vercel
 
@@ -58,7 +75,8 @@ See [DOCUMENTATION.md](DOCUMENTATION.md) for detailed architecture, SQL commands
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS with terminal theme
 - **Backend**: Supabase (Edge Functions, RLS, Real-time)
-- **Deployment**: Vercel / Lovable
+- **Audio**: Web Audio API for synthesized sound effects
+- **Deployment**: Vercel
 
 ## 👨‍💻 Author
 
@@ -68,4 +86,4 @@ See [DOCUMENTATION.md](DOCUMENTATION.md) for detailed architecture, SQL commands
 
 ---
 
-Built with [Lovable](https://lovable.dev) AI.
+Built with [Lovable](https://lovable.dev/invite/A5KC0U8) AI.

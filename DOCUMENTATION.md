@@ -4,7 +4,7 @@
 
 MuriukiDB is a custom Relational Database Management System (RDBMS) built as a submission for the **Pesapal Junior Dev Challenge '26**. It features a complete SQL parser, query execution engine with in-memory B-Tree indexing, and an interactive REPL interface, demonstrated through a Contact Manager web application.
 
-**Live Demo**: [https://rdbms.lovable.app](https://rdbms.lovable.app)
+**Live Demo**: [https://rdbms-muriuki.vercel.app/](https://rdbms-muriuki.vercel.app/)
 
 ---
 
@@ -29,6 +29,7 @@ MuriukiDB is a custom Relational Database Management System (RDBMS) built as a s
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS with custom terminal theme
 - **Backend**: Supabase for data persistence & authentication
+- **Audio**: Web Audio API for synthesized sound effects
 - **State Management**: React Context + sessionStorage for session tracking
 
 ### SQL Engine Components
@@ -244,11 +245,19 @@ The app runs at `http://localhost:8080` by default.
 
 ### Environment Variables
 
-The project uses Supabase for the backend. Configure your environment variables:
+The project uses Supabase for the backend. Create a `.env` file from the example:
+
+```bash
+cp .env.example .env
+```
+
+Then fill in your Supabase credentials:
 
 ```env
+# Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
+VITE_SUPABASE_PROJECT_ID=your_project_id
 ```
 
 ---
@@ -258,37 +267,49 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
 ```
 src/
 ├── components/
-│   ├── REPL.tsx              # Interactive SQL terminal
-│   ├── ContactManager.tsx     # Demo CRUD application
-│   ├── Leaderboard.tsx        # Global rankings
-│   ├── ProfilePanel.tsx       # User profile management
-│   ├── QueryHistory.tsx       # Query history viewer
-│   ├── TerminalAuth.tsx       # Terminal-based authentication
-│   ├── DeleteConfirmDialog.tsx # Destructive operation confirmation
-│   ├── SampleQueries.tsx      # Sample SQL queries loader
-│   └── animations/            # UI animations
+│   ├── REPL.tsx                  # Interactive SQL terminal
+│   ├── DemoAppManager.tsx        # Demo CRUD application (5 table types)
+│   ├── ContactManager.tsx        # Legacy Contact Manager
+│   ├── Leaderboard.tsx           # Global rankings
+│   ├── ProfilePanel.tsx          # User profile & sound settings
+│   ├── QueryHistory.tsx          # Query history viewer
+│   ├── TerminalAuth.tsx          # Terminal-based authentication
+│   ├── DeleteConfirmDialog.tsx   # Destructive operation confirmation
+│   ├── SampleQueries.tsx         # Sample SQL queries loader
+│   ├── WelcomeTutorial.tsx       # Onboarding for new users
+│   ├── animations/               # UI animations (FadeContent, etc.)
+│   └── tour/                     # Interactive tour components
+│       ├── InteractiveTour.tsx   # Tour controller
+│       ├── TourSpotlight.tsx     # Spotlight overlay
+│       └── TourTooltip.tsx       # Tour step tooltips
+├── contexts/
+│   └── FeedbackContext.tsx       # Sound/haptic feedback provider
 ├── hooks/
-│   ├── useAuth.tsx            # Authentication context
-│   ├── useGameStats.tsx       # Gamification state (XP, ranks, badges)
-│   └── useUserFingerprint.tsx # Session tracking (per-session visits)
+│   ├── useAuth.tsx               # Authentication context
+│   ├── useGameStats.tsx          # Gamification state (XP, ranks, badges)
+│   ├── useSounds.tsx             # Web Audio API sound effects
+│   ├── useTour.tsx               # Interactive guided tour
+│   ├── useRealtimeTable.tsx      # Real-time data sync
+│   ├── useTheme.tsx              # Dark/light theme management
+│   └── useUserFingerprint.tsx    # Session tracking (per-session visits)
 ├── lib/rdbms/
-│   ├── lexer.ts               # SQL tokenizer with XSS protection
-│   ├── parser.ts              # AST builder
-│   ├── executor.ts            # Query execution with RLS context
-│   ├── btree.ts               # B-Tree index implementation
-│   └── types.ts               # TypeScript interfaces
+│   ├── lexer.ts                  # SQL tokenizer with XSS protection
+│   ├── parser.ts                 # AST builder
+│   ├── executor.ts               # Query execution with RLS context
+│   ├── btree.ts                  # B-Tree index implementation
+│   └── types.ts                  # TypeScript interfaces
 ├── pages/
-│   ├── Index.tsx              # Main dashboard
-│   └── Achievements.tsx       # Badges & ranks view
+│   ├── Index.tsx                 # Main dashboard
+│   └── Achievements.tsx          # Badges & ranks view
 └── integrations/supabase/
-    ├── client.ts              # Supabase client
-    └── types.ts               # Auto-generated DB types
+    ├── client.ts                 # Supabase client
+    └── types.ts                  # Auto-generated DB types
 
 supabase/
 ├── functions/
-│   ├── sql-execute/           # Rate limiting Edge Function
-│   └── cleanup-inactive/      # Data cleanup Edge Function
-└── migrations/                # Database schema migrations
+│   ├── sql-execute/              # Rate limiting Edge Function
+│   └── cleanup-inactive/         # Data cleanup Edge Function
+└── migrations/                   # Database schema migrations
 ```
 
 ---
@@ -303,7 +324,7 @@ supabase/
 
 ### User Experience
 5. **Terminal-Style REPL**: Authentic command-line experience with syntax highlighting
-6. **Contact Manager Demo**: Full CRUD app showcasing RDBMS capabilities
+6. **Demo App Manager**: Full CRUD for 5 table types (Contacts, Users, Products, Orders, Employees)
 7. **CSV/JSON Import/Export**: Data portability for the demo app
 8. **Keyboard Shortcuts**: Ctrl+Enter to run, Esc to clear, Arrow keys for history
 9. **Dark/Light Themes**: Customizable UI with terminal aesthetics
@@ -311,18 +332,19 @@ supabase/
 11. **Interactive Tour**: Guided walkthrough of app features with spotlight overlay
 12. **Welcome Tutorial**: Onboarding for new users with theme selection
 13. **Password Strength Indicator**: Visual feedback during signup and password reset
+14. **Sound Effects**: Audio feedback for XP gains, achievements, rank ups, and errors (Web Audio API)
 
 ### Gamification
-14. **XP & Ranking System**: 23 military-style ranks from Private to Commander in Chief
-15. **Badge Achievements**: SQL Scholar, Query Master, Data Wizard, etc.
-16. **Streak Tracking**: Daily activity streaks with server-side persistence
-17. **Global Leaderboard**: Compete with other users worldwide
+15. **XP & Ranking System**: 23 military-style ranks from Private to Commander in Chief
+16. **Badge Achievements**: SQL Scholar, Query Master, Data Wizard, etc.
+17. **Streak Tracking**: Daily activity streaks with server-side persistence
+18. **Global Leaderboard**: Compete with other users worldwide
 
 ### Security & Safety
-18. **Destructive Operation Confirmations**: DROP TABLE and DELETE trigger warning dialogs
-19. **Rate Limiting**: Prevents abuse with server-side enforcement
-20. **Data Isolation**: Each user's data is completely isolated
-21. **Auto Cleanup**: Anonymous data cleaned after 7 days
+19. **Destructive Operation Confirmations**: DROP TABLE and DELETE trigger warning dialogs
+20. **Rate Limiting**: Prevents abuse with server-side enforcement
+21. **Data Isolation**: Each user's data is completely isolated
+22. **Auto Cleanup**: Anonymous data cleaned after 7 days
 
 ---
 
@@ -411,6 +433,7 @@ Visual feedback (non-enforcing) showing password strength during signup and rese
    In Project Settings → Environment Variables:
    - `VITE_SUPABASE_URL` - Your Supabase project URL
    - `VITE_SUPABASE_PUBLISHABLE_KEY` - Your Supabase anon key
+   - `VITE_SUPABASE_PROJECT_ID` - Your Supabase project ID
 
 5. **Deploy**
    - Click "Deploy" and wait for build to complete
@@ -435,7 +458,7 @@ The `vercel.json` file handles client-side routing:
 - Portfolio: [samuel-muriuki.vercel.app](https://samuel-muriuki.vercel.app/)
 - GitHub: [github.com/Samuel-Muriuki](https://github.com/Samuel-Muriuki)
 
-Built in collaboration with [Lovable](https://lovable.dev) AI.
+Built in collaboration with [Lovable](https://lovable.dev/invite/A5KC0U8) AI.
 
 ---
 
@@ -447,6 +470,6 @@ This project was created for the Pesapal Junior Developer Challenge 2026.
 
 ## 🙏 Acknowledgments
 
-- **Pesapal** for the challenging and interesting problem
-- **Lovable AI** for collaboration on development
+- **[Pesapal](https://www.pesapal.com/)** for the challenging and interesting problem
+- **[Lovable](https://lovable.dev/invite/A5KC0U8) AI** for collaboration on development
 - The open-source community for inspiration on SQL parsing techniques
