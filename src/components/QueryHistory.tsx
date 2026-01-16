@@ -303,7 +303,7 @@ ${query}
         </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden p-0">
-        <ScrollArea className="h-full max-h-[calc(100%-1rem)] scrollbar-thin">
+        <ScrollArea className="h-full max-h-[calc(100%-1rem)]">
           <div className="px-4 pb-4">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">

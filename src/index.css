@@ -464,16 +464,17 @@ html.transitioning * {
   scrollbar-width: thin;
 }
 .scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
+  background: hsl(var(--terminal-green) / 0.08);
+  border-radius: 3px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: hsl(var(--terminal-green) / 0.3);
-  border-radius: 2px;
+  background: hsl(var(--terminal-green) / 0.55);
+  border-radius: 3px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--terminal-green) / 0.5);
+  background: hsl(var(--terminal-green) / 0.8);
 }

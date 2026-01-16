@@ -545,7 +545,7 @@ export const SampleQueries = ({ onSelectQuery, highlightQueryId, onHighlightComp
         </div>
       </CardHeader>
       <CardContent className="flex-1 min-h-0 overflow-hidden p-0">
-        <ScrollArea className="h-full px-4 pb-4 scrollbar-thin">
+        <ScrollArea className="h-full px-4 pb-4">
           {/* Quick Templates Section */}
           {activeTable && getQuickTemplates(activeTable).length > 0 && !searchTerm && (
             <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20">

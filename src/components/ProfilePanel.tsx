@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { 
   User, Edit2, Save, X, Loader2, Trophy, Zap, 
   Calendar, Flame, Target, Award, LogOut, AlertTriangle,
-  Volume2, VolumeX
+  Volume2, VolumeX, Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { FadeContent } from './animations/FadeContent';
@@ -44,6 +44,9 @@ export function ProfilePanel() {
   const [newNickname, setNewNickname] = useState('');
   const [globalRank, setGlobalRank] = useState<number | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -69,16 +72,15 @@ export function ProfilePanel() {
         setProfile(profileData);
         setNewNickname(profileData.nickname);
 
-        // Get global rank
-        const { data: rankData } = await supabase
+        // Get global rank - count users with MORE XP than current user
+        const { count, error: rankError } = await supabase
           .from('leaderboard')
-          .select('id')
-          .gte('xp', profileData.xp)
-          .order('xp', { ascending: false });
+          .select('id', { count: 'exact', head: true })
+          .gt('xp', profileData.xp);
 
-        if (rankData) {
-          const rank = rankData.findIndex(e => e.id === profileData.id) + 1;
-          setGlobalRank(rank > 0 ? rank : null);
+        if (!rankError && count !== null) {
+          // Rank = count of users with higher XP + 1
+          setGlobalRank(count + 1);
         }
       } else {
         // No profile exists - create one
@@ -155,6 +157,39 @@ export function ProfilePanel() {
       toast.error(error.message || 'Failed to update nickname');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangeEmail = async () => {
+    if (!newEmail.trim() || !user) return;
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
+    if (newEmail.trim().toLowerCase() === user.email?.toLowerCase()) {
+      toast.error('New email is the same as current email');
+      return;
+    }
+    
+    setSavingEmail(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail.trim(),
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Confirmation email sent! Check your inbox (old & new email).');
+      setEditingEmail(false);
+      setNewEmail('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update email');
+    } finally {
+      setSavingEmail(false);
     }
   };
 
@@ -292,7 +327,62 @@ export function ProfilePanel() {
                   <Edit2 className="w-3 h-3" />
                 </Button>
               </div>
+          )}
+          </div>
+
+          {/* Email Section */}
+          <div className="space-y-2">
+            <Label className="text-xs font-mono text-muted-foreground flex items-center gap-1">
+              <Mail className="w-3 h-3" />
+              Email
+            </Label>
+            {editingEmail ? (
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="new@email.com"
+                  className="font-mono text-sm"
+                  disabled={savingEmail}
+                />
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={handleChangeEmail} 
+                  disabled={savingEmail}
+                  className="shrink-0"
+                >
+                  {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                </Button>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={() => { setEditingEmail(false); setNewEmail(''); }} 
+                  disabled={savingEmail}
+                  className="shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-sm text-muted-foreground truncate max-w-[180px]">
+                  {user?.email || 'No email set'}
+                </span>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={() => setEditingEmail(true)}
+                  className="h-7 w-7"
+                >
+                  <Edit2 className="w-3 h-3" />
+                </Button>
+              </div>
             )}
+            <p className="text-[10px] text-muted-foreground">
+              Changing email requires confirmation via both addresses.
+            </p>
           </div>
 
           {/* Rank & XP - Using merged stats */}
