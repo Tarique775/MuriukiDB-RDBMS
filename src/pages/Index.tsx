@@ -14,8 +14,9 @@ import { FadeContent } from '@/components/animations/FadeContent';
 import { DecryptedText } from '@/components/animations/DecryptedText';
 import { KeyboardShortcutsModal, useKeyboardShortcuts } from '@/components/KeyboardShortcutsModal';
 import { WelcomeTutorial } from '@/components/WelcomeTutorial';
-import { InteractiveTour } from '@/components/tour/InteractiveTour';
+import { TourSpotlight, TourTooltip } from '@/components/tour';
 import { useTour } from '@/hooks/useTour';
+import { TerminalAuth } from '@/components/TerminalAuth';
 import { Terminal, Users, Github, History, Code, Trophy, Award, User, Keyboard, Play } from 'lucide-react';
 import { useUserFingerprint } from '@/hooks/useUserFingerprint';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,6 +31,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Tab = 'repl' | 'contacts';
@@ -61,8 +66,9 @@ const Index = () => {
   const [historySheetOpen, setHistorySheetOpen] = useState(false);
   const [rankSheetOpen, setRankSheetOpen] = useState(false);
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { userInfo } = useUserFingerprint();
-  const { user } = useAuth();
+  const { user, isRecoveryMode, clearRecoveryMode } = useAuth();
   const { migrateAnonymousStats } = useGameStats();
   const { isOpen: shortcutsOpen, setIsOpen: setShortcutsOpen } = useKeyboardShortcuts();
   
@@ -110,6 +116,13 @@ const Index = () => {
       migrateAnonymousStats();
     }
   }, [user, migrateAnonymousStats]);
+
+  // Handle recovery mode - show password reset dialog when user clicks recovery link in email
+  useEffect(() => {
+    if (isRecoveryMode) {
+      setShowPasswordReset(true);
+    }
+  }, [isRecoveryMode]);
 
   // Global keyboard shortcuts for tab switching
   useEffect(() => {
@@ -167,6 +180,24 @@ const Index = () => {
         }}
       />
       <KeyboardShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      
+      {/* Password Reset Dialog - shown when user clicks recovery link in email */}
+      <Dialog open={showPasswordReset} onOpenChange={setShowPasswordReset}>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-primary/30">
+          <TerminalAuth 
+            initialStep="recovery_new_password"
+            onComplete={() => {
+              setShowPasswordReset(false);
+              clearRecoveryMode();
+              toast.success('Password updated successfully!');
+            }}
+            onCancel={() => {
+              setShowPasswordReset(false);
+              clearRecoveryMode();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
       <div className="h-screen flex flex-col bg-background text-foreground matrix-bg overflow-hidden">
         {/* Header */}
       <header className="border-b border-border/50 glass-card flex-shrink-0 z-50">
@@ -269,7 +300,7 @@ const Index = () => {
 
       {/* Mobile/Tablet Side Panel Tabs */}
       <div className="lg:hidden flex-shrink-0 border-b border-border/30">
-        <div className="flex gap-2 p-3 overflow-x-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent">
+        <div className="flex gap-2 p-3 overflow-x-auto scrollbar-thin">
           <Sheet open={sampleSheetOpen} onOpenChange={setSampleSheetOpen}>
             <SheetTrigger asChild>
               <Button data-tour="samples-btn" variant="outline" size="sm" className="font-mono text-xs gap-1.5 glass-button flex-shrink-0 whitespace-nowrap">
@@ -370,7 +401,7 @@ const Index = () => {
 
             {/* Side Panel - Desktop */}
             <div className="hidden lg:flex lg:flex-col w-80 xl:w-96 flex-shrink-0 gap-4 h-full">
-              <div className="flex gap-1 flex-shrink-0 overflow-x-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent pb-2 min-w-0">
+              <div className="flex gap-1 flex-shrink-0 overflow-x-auto scrollbar-thin pb-2 min-w-0">
                 <TabButton 
                   active={sidePanel === 'samples'} 
                   onClick={() => setSidePanel('samples')}
@@ -422,6 +453,26 @@ const Index = () => {
         {/* Footer */}
         <AppFooter />
       </div>
+      
+      {/* Interactive Tour Overlay */}
+      {tour.isActive && tour.currentStep && (
+        <>
+          <TourSpotlight targetSelector={tour.currentStep.target} />
+          <TourTooltip
+            targetSelector={tour.currentStep.target}
+            title={tour.currentStep.title}
+            content={tour.currentStep.content}
+            position={tour.currentStep.position}
+            currentStep={tour.currentStepIndex}
+            totalSteps={tour.totalSteps}
+            onNext={tour.next}
+            onPrev={tour.prev}
+            onSkip={tour.skip}
+            isFirstStep={tour.isFirstStep}
+            isLastStep={tour.isLastStep}
+          />
+        </>
+      )}
     </>
   );
 };

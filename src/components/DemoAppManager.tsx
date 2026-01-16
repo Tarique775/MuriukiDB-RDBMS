@@ -581,7 +581,7 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
     <div className="space-y-4 md:space-y-6">
       <FadeContent blur duration={400}>
         {/* Table Tabs */}
-        <div data-tour="table-selector" className="flex gap-1 mb-4 overflow-x-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent pb-2">
+        <div data-tour="table-selector" className="flex gap-1 mb-4 overflow-x-auto scrollbar-thin pb-2">
           {DEMO_TABLES.map(table => (
             <Button
               key={table.id}
@@ -777,7 +777,7 @@ export const DemoAppManager = ({ activeTableId = 'contacts', onTableChange }: De
         <Card data-tour="data-table" className="glass-card border-primary/30 overflow-hidden">
           <div
             ref={tableRef}
-            className="overflow-x-auto focus:outline-none"
+            className="overflow-x-auto scrollbar-thin focus:outline-none"
             tabIndex={0}
             onKeyDown={handleKeyDown}
             onFocus={() => focusedRowIndex === null && paginatedRecords.length > 0 && setFocusedRowIndex(0)}

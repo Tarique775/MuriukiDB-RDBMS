@@ -307,38 +307,61 @@ supabase/
 7. **CSV/JSON Import/Export**: Data portability for the demo app
 8. **Keyboard Shortcuts**: Ctrl+Enter to run, Esc to clear, Arrow keys for history
 9. **Dark/Light Themes**: Customizable UI with terminal aesthetics
-10. **Mobile Responsive**: Works on all devices
+10. **Mobile Responsive**: Works on all devices with collapsible navigation
+11. **Interactive Tour**: Guided walkthrough of app features with spotlight overlay
+12. **Welcome Tutorial**: Onboarding for new users with theme selection
+13. **Password Strength Indicator**: Visual feedback during signup and password reset
 
 ### Gamification
-11. **XP & Ranking System**: 23 military-style ranks from Private to Commander in Chief
-12. **Badge Achievements**: SQL Scholar, Query Master, Data Wizard, etc.
-13. **Streak Tracking**: Daily activity streaks with server-side persistence
-14. **Global Leaderboard**: Compete with other users worldwide
+14. **XP & Ranking System**: 23 military-style ranks from Private to Commander in Chief
+15. **Badge Achievements**: SQL Scholar, Query Master, Data Wizard, etc.
+16. **Streak Tracking**: Daily activity streaks with server-side persistence
+17. **Global Leaderboard**: Compete with other users worldwide
 
 ### Security & Safety
-15. **Destructive Operation Confirmations**: DROP TABLE and DELETE trigger warning dialogs
-16. **Rate Limiting**: Prevents abuse with server-side enforcement
-17. **Data Isolation**: Each user's data is completely isolated
-18. **Auto Cleanup**: Anonymous data cleaned after 7 days
+18. **Destructive Operation Confirmations**: DROP TABLE and DELETE trigger warning dialogs
+19. **Rate Limiting**: Prevents abuse with server-side enforcement
+20. **Data Isolation**: Each user's data is completely isolated
+21. **Auto Cleanup**: Anonymous data cleaned after 7 days
 
 ---
 
 ## 🔑 Authentication
 
-### Terminal-Based Auth Flow
+### Email Link Authentication
 
-The authentication uses a unique terminal-style interface:
+The authentication uses Supabase's native email verification with a terminal-style interface:
 
-1. **Commands**: `SIGNUP`, `LOGIN`, `RECOVER`, `EXIT`
-2. **OTP Verification**: 6-digit code sent to email (auto-confirm enabled for demo)
-3. **Password Toggle**: Press `Shift+T` to show/hide password
-4. **Escape to Cancel**: Press `Esc` to exit auth flow
+1. **Signup Flow**:
+   - Enter nickname, email, and password (with visual strength indicator)
+   - OTP verification code sent to email
+   - Enter 6-character code → account created → auto logged in
 
-### Session Tracking
+2. **Login Flow**:
+   - Enter email and password
+   - Authenticated immediately
 
-- **Visit Counter**: Per-session tracking using sessionStorage
-- **Session ID**: Unique per browser tab/window
-- **User ID**: Persistent after authentication
+3. **Password Recovery**:
+   - Enter email → recovery link sent
+   - Click link in email → redirected to app
+   - Prompted to enter new password (with strength indicator)
+   - Password updated → logged in
+
+### Password Strength Indicator
+
+Visual feedback (non-enforcing) showing password strength during signup and reset:
+- **Too weak** (red): Less than 6 characters
+- **Weak** (orange): 6+ characters only
+- **Fair** (yellow): Mixed case or numbers
+- **Good/Strong** (green): Mixed case + numbers + special chars
+
+### Terminal Commands
+- `SIGNUP` - Create new account
+- `LOGIN` - Sign in to existing account
+- `RECOVER` - Reset forgotten password
+- `EMAIL` - Change email address
+- `Shift+T` - Toggle password visibility
+- `Escape` - Cancel operation
 
 ---
 

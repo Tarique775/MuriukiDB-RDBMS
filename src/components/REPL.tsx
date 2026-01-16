@@ -329,7 +329,7 @@ export function REPL({ initialQuery, onQueryChange, onQueryError }: REPLProps) {
 
     if (result.rows && result.rows.length > 0 && result.columns) {
       return (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scrollbar-thin">
           <table className="min-w-full border-collapse">
             <thead>
               <tr>

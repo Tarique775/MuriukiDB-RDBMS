@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 
 type AuthStep = 
   | 'idle' 
@@ -14,13 +15,14 @@ interface TerminalAuthProps {
   onComplete: () => void;
   onCancel: () => void;
   onEmailSent?: (email: string) => void;
+  initialStep?: AuthStep;
 }
 
 // Terminal commands for autocomplete
 const TERMINAL_COMMANDS = ['SIGNUP', 'LOGIN', 'RECOVER', 'EMAIL', 'HELP', 'EXIT'];
 
-export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuthProps) {
-  const [step, setStep] = useState<AuthStep>('idle');
+export function TerminalAuth({ onComplete, onCancel, onEmailSent, initialStep }: TerminalAuthProps) {
+  const [step, setStep] = useState<AuthStep>(initialStep || 'idle');
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<Array<{ type: 'input' | 'output' | 'error' | 'success'; text: string }>>([]);
   const [showPassword, setShowPassword] = useState(false);
@@ -28,9 +30,26 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
   const [isProcessing, setIsProcessing] = useState(false);
   const [authCompleted, setAuthCompleted] = useState(false);
   const [cmdSuggestionIndex, setCmdSuggestionIndex] = useState(-1);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { signUp, signIn, resetPassword, verifyOtp, updatePassword, updateEmail, sendCustomOtp, verifyCustomOtp, createUserAfterOtp, user } = useAuth();
+
+  // Show recovery mode welcome message
+  useEffect(() => {
+    if (initialStep === 'recovery_new_password') {
+      setHistory([
+        { type: 'output', text: '╔══════════════════════════════════════════╗' },
+        { type: 'output', text: '║         PASSWORD RESET                   ║' },
+        { type: 'output', text: '╚══════════════════════════════════════════╝' },
+        { type: 'output', text: '' },
+        { type: 'success', text: '✓ Recovery link verified!' },
+        { type: 'output', text: '' },
+        { type: 'output', text: 'Enter your NEW PASSWORD:' },
+        { type: 'output', text: '(min 6 characters, Shift+T to toggle visibility)' },
+      ]);
+    }
+  }, [initialStep]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -404,9 +423,38 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
       return;
     }
 
-    // NOTE: Password reset after custom OTP is not supported in this flow
-    // Users verified with custom OTP should use LOGIN with their existing password
-    // or contact support for password reset assistance
+    // Handle password update after recovery link click
+    if (step === 'recovery_new_password') {
+      const password = rawValue.trim();
+      if (password.length < 6) {
+        addOutput('input', `> ${'*'.repeat(password.length)}`);
+        addOutput('error', 'Password must be at least 6 characters');
+        return;
+      }
+      
+      addOutput('input', `> ${'*'.repeat(password.length)}`);
+      setIsProcessing(true);
+      addOutput('output', 'Updating your password...');
+      
+      const { error } = await updatePassword(password);
+      
+      if (error) {
+        addOutput('error', `Error: ${error}`);
+        addOutput('output', 'Please try again:');
+        setIsProcessing(false);
+        return;
+      }
+      
+      addOutput('success', '');
+      addOutput('success', '✓ Password updated successfully!');
+      addOutput('success', '✓ You are now logged in');
+      addOutput('success', '');
+      toast.success('Password updated! Welcome back!');
+      setFormData({ nickname: '', email: '', password: '', newEmail: '' });
+      completeAuth();
+      setIsProcessing(false);
+      return;
+    }
 
     // Handle email change flow
     if (step === 'email_change_new') {
@@ -507,49 +555,61 @@ export function TerminalAuth({ onComplete, onCancel, onEmailSent }: TerminalAuth
 
         {/* Current input */}
         {!isProcessing && (
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 mt-2">
-            <span className="text-[hsl(var(--terminal-green))] font-mono">{'>'}</span>
-            <div className="flex-1 relative">
-              <input
-                ref={inputRef}
-                type={isPasswordField && !showPassword ? 'password' : 'text'}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  setCmdSuggestionIndex(-1);
-                }}
-                onKeyDown={(e) => {
-                  // Tab autocomplete for commands in idle state
-                  if (e.key === 'Tab' && step === 'idle') {
-                    e.preventDefault();
-                    const upperInput = input.toUpperCase();
-                    const matches = TERMINAL_COMMANDS.filter(cmd => 
-                      cmd.startsWith(upperInput) && cmd !== upperInput
-                    );
-                    
-                    if (matches.length === 1) {
-                      setInput(matches[0]);
-                    } else if (matches.length > 1) {
-                      const nextIdx = (cmdSuggestionIndex + 1) % matches.length;
-                      setCmdSuggestionIndex(nextIdx);
-                      setInput(matches[nextIdx]);
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 mt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[hsl(var(--terminal-green))] font-mono">{'>'}</span>
+              <div className="flex-1 relative">
+                <input
+                  ref={inputRef}
+                  type={isPasswordField && !showPassword ? 'password' : 'text'}
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    setCmdSuggestionIndex(-1);
+                    if (isPasswordField) {
+                      setCurrentPasswordInput(e.target.value);
                     }
-                  }
-                }}
-                className="w-full bg-transparent border-none outline-none font-mono text-foreground"
-                autoComplete="off"
-                spellCheck="false"
-                placeholder={step === 'idle' ? 'Type command... (Tab to autocomplete)' : ''}
-              />
+                  }}
+                  onKeyDown={(e) => {
+                    // Tab autocomplete for commands in idle state
+                    if (e.key === 'Tab' && step === 'idle') {
+                      e.preventDefault();
+                      const upperInput = input.toUpperCase();
+                      const matches = TERMINAL_COMMANDS.filter(cmd => 
+                        cmd.startsWith(upperInput) && cmd !== upperInput
+                      );
+                      
+                      if (matches.length === 1) {
+                        setInput(matches[0]);
+                      } else if (matches.length > 1) {
+                        const nextIdx = (cmdSuggestionIndex + 1) % matches.length;
+                        setCmdSuggestionIndex(nextIdx);
+                        setInput(matches[nextIdx]);
+                      }
+                    }
+                  }}
+                  className="w-full bg-transparent border-none outline-none font-mono text-foreground"
+                  autoComplete="off"
+                  spellCheck="false"
+                  placeholder={step === 'idle' ? 'Type command... (Tab to autocomplete)' : ''}
+                />
+              </div>
+              {isPasswordField && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              )}
             </div>
-            {isPasswordField && (
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+            
+            {/* Password strength indicator */}
+            {isPasswordField && currentPasswordInput.length > 0 && (
+              <div className="ml-4 max-w-xs">
+                <PasswordStrengthIndicator password={currentPasswordInput} />
+              </div>
             )}
           </form>
         )}
