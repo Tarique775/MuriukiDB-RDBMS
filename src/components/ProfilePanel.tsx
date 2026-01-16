@@ -71,17 +71,6 @@ export function ProfilePanel() {
       if (profileData) {
         setProfile(profileData);
         setNewNickname(profileData.nickname);
-
-        // Get global rank - count users with MORE XP than current user
-        const { count, error: rankError } = await supabase
-          .from('leaderboard')
-          .select('id', { count: 'exact', head: true })
-          .gt('xp', profileData.xp);
-
-        if (!rankError && count !== null) {
-          // Rank = count of users with higher XP + 1
-          setGlobalRank(count + 1);
-        }
       } else {
         // No profile exists - create one
         const nickname = user.user_metadata?.nickname || user.email?.split('@')[0] || 'Player';
@@ -262,6 +251,28 @@ export function ProfilePanel() {
 
   // Use merged XP for rank calculation
   const rankInfo = getRankInfo(mergedXp);
+
+  // Recalculate global rank whenever mergedXp changes
+  useEffect(() => {
+    const calculateRank = async () => {
+      if (mergedXp === 0) {
+        setGlobalRank(null);
+        return;
+      }
+      
+      // Count users with MORE XP than current user's merged XP
+      const { count, error } = await supabase
+        .from('leaderboard')
+        .select('id', { count: 'exact', head: true })
+        .gt('xp', mergedXp);
+      
+      if (!error && count !== null) {
+        setGlobalRank(count + 1);
+      }
+    };
+    
+    calculateRank();
+  }, [mergedXp]);
 
   return (
     <Card className="glass-card border-primary/30 h-full flex flex-col overflow-hidden">
