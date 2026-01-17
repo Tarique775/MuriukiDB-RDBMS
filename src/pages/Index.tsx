@@ -23,7 +23,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useGameStats } from '@/hooks/useGameStats';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import SentryTestButton from '@/components/SentryTestButton';
 import {
   Sheet,
   SheetContent,
@@ -302,8 +301,6 @@ const Index = () => {
               >
                 <Github className="w-4 sm:w-5 h-4 sm:h-5" />
               </a>
-              {/* Temporary - remove after verifying Sentry works */}
-              <SentryTestButton />
             </div>
           </div>
         </div>

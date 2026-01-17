@@ -76,6 +76,7 @@ See [DOCUMENTATION.md](DOCUMENTATION.md) for detailed architecture, SQL commands
 - **Styling**: Tailwind CSS with terminal theme
 - **Backend**: Supabase (Edge Functions, RLS, Real-time)
 - **Audio**: Web Audio API for synthesized sound effects
+- **Monitoring**: Sentry for error tracking and performance monitoring
 - **Deployment**: Vercel
 
 ## 🔧 Custom vs Supabase Components

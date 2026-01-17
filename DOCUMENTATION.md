@@ -30,6 +30,7 @@ MuriukiDB is a custom Relational Database Management System (RDBMS) built as a s
 - **Styling**: Tailwind CSS with custom terminal theme
 - **Backend**: Supabase for data persistence & authentication
 - **Audio**: Web Audio API for synthesized sound effects
+- **Monitoring**: Sentry for error tracking and performance monitoring
 - **State Management**: React Context + sessionStorage for session tracking
 
 ### SQL Engine Components
@@ -106,6 +107,30 @@ Each user operates in an isolated environment:
 | Leaderboard stats tampering | Client-side validation + capped values on sync |
 | localStorage data exposure | Server-side validation before persisting |
 | Missing RLS context | Executor now includes user_id/session_id in all operations |
+
+---
+
+## 📊 Monitoring & Error Tracking
+
+### Sentry Integration
+
+The application uses [Sentry](https://sentry.io) for real-time error tracking and performance monitoring in production.
+
+**Features:**
+- **Error Tracking**: Automatic capture of unhandled exceptions and promise rejections
+- **Performance Monitoring**: Transaction tracing with 10% sample rate
+- **Session Replay**: Captures user sessions (10% normal, 100% on error) for debugging
+- **Source Maps**: Uploaded during build for readable stack traces
+
+**Configuration:**
+- Sentry is enabled only in production (`import.meta.env.PROD`)
+- DSN is configured via environment variable or build-time injection
+- Integrations: Browser Tracing, Session Replay
+
+**Environment Variables:**
+```env
+VITE_SENTRY_DSN=your_sentry_dsn_here
+```
 
 ---
 
